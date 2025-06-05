@@ -1,2 +1,2 @@
 # numfolio
-Portfolio performance accellerated by Numba
+Portfolio performance accelerated by Numba
