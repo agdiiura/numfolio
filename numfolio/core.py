@@ -6,7 +6,6 @@ core.py
 A module for core functionalities.
 """
 
-import sys
 import inspect
 import warnings
 
@@ -39,7 +38,7 @@ def bootstrap_metric(
     min_length: int = 5,
 ) -> np.ndarray:
     """
-    Average results using bootstrapping procedure
+    Compute input metric using bootstrapping procedure
 
     Args:
         returns: a vector-like object of returns
@@ -77,7 +76,7 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
         freq: (str) resampling frequency
 
     Returns:
-        metrics values a
+        metrics values of the portfolio performance
 
     """
 
@@ -147,12 +146,30 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
 
 
 def compute_returns(x: pd.Series) -> float:
-    """Compute returns from input series"""
+    """
+    Compute returns from input series
+
+    Args:
+        x: input series
+
+    Returns:
+        returns of the input series
+
+    """
     return x.iloc[-1] - x.iloc[0]
 
 
 def compute_pct_returns(x: pd.Series) -> float:
-    """Compute returns from input series"""
+    """
+    Compute returns from input series
+
+    Args:
+        x: input series
+
+    Returns:
+        percentage returns of the input series
+
+    """
     p0 = x.iloc[0]
     if p0 != 0:
         return x.iloc[-1] / p0 - 1

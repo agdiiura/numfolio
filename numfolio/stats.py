@@ -138,7 +138,7 @@ def compute_downside_risk(returns: np.ndarray, r: float = 0.0) -> float:
     ]
 )
 @numba.njit
-def numba_max(x, y):
+def _numba_max(x, y):
     """
     Vectorized numba version of np.maximum.accumulate
     See: https://stackoverflow.com/questions/56551989
@@ -162,7 +162,7 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
     pnl = _compute_pnl(returns)
 
     # end of the period
-    i = np.argmax(numba_max.accumulate(pnl) - pnl)
+    i = np.argmax(_numba_max.accumulate(pnl) - pnl)
     if pnl[:i].size > 0:
         # j = np.argmax(pnl[:i]) start of period
         return np.max(pnl[:i]) - pnl[i]
@@ -376,7 +376,7 @@ def compute_raroc(
     over the VaR
 
     • Stoughton, Neal M., and Josef Zechner.
-        "Optimal capital allocation using RAROC™ and EVA®."
+        "Optimal capital allocation using RAROC and EVA."
         Journal of Financial Intermediation 16.3 (2007): 312-342.
 
     • Prokopczuk, Marcel, et al.
