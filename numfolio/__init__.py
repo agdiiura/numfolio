@@ -9,6 +9,9 @@ Portfolio performance package accelerated by Numba
 from pathlib import Path
 from importlib.metadata import version
 
+from .stats import *
+from .core import *
+
 
 def _read_version() -> str:
     """Read version from metadata or pyproject.toml"""
