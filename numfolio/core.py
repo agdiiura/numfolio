@@ -36,6 +36,7 @@ def bootstrap_metric(
     n_bootstraps: int = 1000,
     n_jobs: int = 2,
     min_length: int = 5,
+    **kwargs,
 ) -> np.ndarray:
     """
     Compute input metric using bootstrapping procedure
@@ -46,6 +47,7 @@ def bootstrap_metric(
         n_bootstraps: number of bootstrap samples
         n_jobs: number of parallel jobs in the computation
         min_length: minimum size of bootstrap sample
+        kwargs: optional arguments
 
     Returns:
         the array contained the bootstrapped results
@@ -59,7 +61,7 @@ def bootstrap_metric(
 
     cb = CircularBlockBootstrap(optimal_length, returns)
     result = Parallel(n_jobs=n_jobs)(
-        delayed(lambda x: f(x))(*pos_data)
+        delayed(lambda x: f(x, **kwargs))(*pos_data)
         for pos_data, kw_data in cb.bootstrap(n_bootstraps)
     )
 
