@@ -12,6 +12,9 @@ The usual signature for this module is the following
 >>>     # return something
 """
 
+import sys
+import inspect
+
 import numba
 import numpy as np
 import statsmodels.api as sm
@@ -37,7 +40,6 @@ __all__ = [
 ]
 
 annualized_factor = np.sqrt(252.0)
-_minimum_size = 4
 
 
 @numba.njit("float64[:](float64[:])", cache=True)
@@ -70,10 +72,9 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         the Sharpe-ratio value
 
     """
-    if returns.size > _minimum_size:
-        std = np.nanstd(returns)
-        if np.isfinite(std):
-            return annualized_factor * (np.nanmean(returns) - r) / std
+    std = np.nanstd(returns)
+    if np.isfinite(std):
+        return annualized_factor * (np.nanmean(returns) - r) / std
 
     return np.nan
 
@@ -96,10 +97,9 @@ def compute_sortino_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     """
     downside_deviations = returns[returns < r]
-    if downside_deviations.size > _minimum_size:
-        std = np.nanstd(downside_deviations)
-        if np.isfinite(std):
-            return annualized_factor * (np.nanmean(returns) - r) / std
+    std = np.nanstd(downside_deviations)
+    if np.isfinite(std):
+        return annualized_factor * (np.nanmean(returns) - r) / std
 
     return np.nan
 
@@ -122,10 +122,9 @@ def compute_downside_risk(returns: np.ndarray, r: float = 0.0) -> float:
 
     """
     downside_deviations = returns[returns < r]
-    if downside_deviations.size > _minimum_size:
-        std = downside_deviations.std()
-        if np.isfinite(std):
-            return annualized_factor * std
+    std = downside_deviations.std()
+    if np.isfinite(std):
+        return annualized_factor * std
 
     return np.nan
 
@@ -162,8 +161,6 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
     """
     pnl = _compute_pnl(returns)
 
-    if pnl.size <= _minimum_size:
-        return np.nan
     # end of the period
     i = np.argmax(numba_max.accumulate(pnl) - pnl)
     if pnl[:i].size > 0:
@@ -190,6 +187,7 @@ def compute_var(returns: np.ndarray, alpha: float | np.ndarray = 0.05) -> float:
         value-at-risk
 
     """
+
     loss = _compute_loss(returns)
     return np.nanquantile(a=loss, q=1.0 - alpha)
 
@@ -245,6 +243,7 @@ def compute_cvar_mid(returns: np.ndarray, alpha: float = 0.05) -> float:
         conditional value-at-risk
 
     """
+
     return compute_var(returns=returns, alpha=0.5 * alpha)
 
 
@@ -274,11 +273,6 @@ def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
 
     """
 
-    if returns.size <= _minimum_size:
-        return np.nan
-    if np.all(np.isnan(returns)):
-        return np.nan
-
     res = minimize_scalar(_compute_evar, args=(returns, alpha), method="Brent")
 
     if res.success:
@@ -306,9 +300,6 @@ def compute_tail_ratio(returns: np.ndarray) -> float:
 
     """
 
-    if returns.size <= _minimum_size:
-        return np.nan
-
     den = np.abs(np.nanquantile(returns, 0.05))
     if den != 0:
         return np.abs(np.nanquantile(returns, 0.95)) / den
@@ -333,9 +324,6 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         the Omega-ratio value
 
     """
-
-    if returns.size <= _minimum_size:
-        return np.nan
 
     returns_less_thresh = returns - r
 
@@ -372,10 +360,9 @@ def compute_calmar_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     """
 
-    if returns.size > _minimum_size:
-        mdd = compute_max_drawdown(returns)
-        if mdd != 0:
-            return annualized_factor * (np.nanmean(returns) - r) / mdd
+    mdd = compute_max_drawdown(returns)
+    if mdd != 0:
+        return annualized_factor * (np.nanmean(returns) - r) / mdd
 
     return np.nan
 
@@ -405,10 +392,10 @@ def compute_raroc(
         the RAROC value
 
     """
-    if returns.size > _minimum_size:
-        var = compute_var(returns, alpha=alpha)
-        if var != 0:
-            return annualized_factor * (np.nanmean(returns) - r) / var
+
+    var = compute_var(returns, alpha=alpha)
+    if var != 0:
+        return annualized_factor * (np.nanmean(returns) - r) / var
 
     return np.nan
 
@@ -430,9 +417,7 @@ def compute_final_pnl(returns: np.ndarray) -> float:
 
 
 @numba.njit
-def compute_final_pnl_percentage(
-    returns: np.ndarray, baseline: float | None = None
-) -> float:
+def compute_final_pnl_percentage(returns: np.ndarray, baseline: float = 1) -> float:
     """
     Compute the final P&L as a percentage
 
@@ -444,8 +429,6 @@ def compute_final_pnl_percentage(
         final value of the pnl as a percentage
 
     """
-    if baseline is None:
-        baseline = 1
     return 100.0 * compute_final_pnl(returns) / baseline
 
 
@@ -462,14 +445,25 @@ def compute_stability_of_timeseries(returns: np.ndarray) -> float:
 
     """
     pnl = _compute_pnl(returns)
-    if pnl.size <= _minimum_size:
-        return np.nan
+
     lags = np.arange(pnl.size)
 
     model = sm.OLS(pnl, lags)
     res = model.fit()
 
     return res.rsquared
+
+
+def compile_numba_functions(size: int = 10) -> dict:
+    """Compile the numba functions"""
+
+    results = dict()
+    rng = np.random.default_rng()
+    values = rng.standard_normal(size)
+    for name, f in inspect.getmembers(sys.modules[__name__]):
+        if callable(f) and name.startswith("compute_"):
+            results[name] = f(values)
+    return results
 
 
 if __name__ == "__main__":

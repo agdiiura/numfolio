@@ -10,8 +10,6 @@ import sys
 import inspect
 import warnings
 
-from inspect import signature
-
 import numpy as np
 import pandas as pd
 
@@ -23,11 +21,14 @@ from sklearn.covariance import (LedoitWolf, GraphicalLassoCV,
 from sklearn.preprocessing import StandardScaler
 from statsmodels.stats.correlation_tools import corr_nearest
 
-from .stats import (compute_var, compute_cvar, compute_final_pnl,
-                    compute_max_drawdown, compute_sharpe_ratio,
-                    compute_sortino_ratio)
+from . import stats
 
-__all__ = ["estimate_correlation", "bootstrap_metric", "get_scorecard"]
+__all__ = [
+    "estimate_correlation",
+    "compute_robust_distance",
+    "bootstrap_metric",
+    "get_scorecard",
+]
 
 
 def bootstrap_metric(
@@ -51,7 +52,7 @@ def bootstrap_metric(
         the array contained the bootstrapped results
 
     """
-    module = inspect.getmembers(sys.modules[__name__])
+    module = inspect.getmembers(stats)
     f = [v for name, v in module if callable(v) and name == f"compute_{metric}"][0]
 
     optimal_length = optimal_block_length(returns**2)["circular"]
@@ -64,23 +65,6 @@ def bootstrap_metric(
     )
 
     return np.array(result)
-
-
-def compile_numba_functions(size: int = 10) -> dict:
-    """Compile the numba functions"""
-
-    results = dict()
-    rng = np.random.default_rng()
-    values = rng.standard_normal(size)
-    others = rng.integers(-10, 10, size=size)
-    for name, f in inspect.getmembers(sys.modules[__name__]):
-        if callable(f) and name.startswith("compute_"):
-            sig = signature(f)
-            if "positions" not in sig.parameters:
-                results[name] = f(values)
-            else:
-                results[name] = f(values, others)
-    return results
 
 
 def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
@@ -110,7 +94,7 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
         'returns': [compute_final_pnl, compute_sharpe_ratio, compute_sortino_ratio, compute_var],
         'pnl': [compute_max_drawdown]
     })"""
-    map_freq = [("Y", "year"), ("Q", "quarter"), ("M", "month"), ("W", "week")]
+    map_freq = [("Y", "year"), ("Q", "quarter"), ("M", "month")]
     idx = [itm[0] for itm in map_freq].index(freq)
 
     cal = portfolio.index
@@ -121,12 +105,15 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
     ]
 
     scorecard = portfolio.groupby("freq").agg(
-        sharpe_ratio=("returns", lambda x: compute_sharpe_ratio(x.dropna().values)),
-        sortino_ratio=("returns", lambda x: compute_sortino_ratio(x.dropna().values)),
-        max_drawdown=("returns", lambda x: compute_max_drawdown(x.dropna().values)),
-        var=("returns", lambda x: compute_var(x.dropna().values)),
-        cvar=("returns", lambda x: compute_cvar(x.dropna().values)),
-        final_pnl=("returns", lambda x: compute_final_pnl(x.dropna().values)),
+        sharpe_ratio=("returns", lambda x: stats.compute_sharpe_ratio(x.dropna().values)),
+        sortino_ratio=(
+            "returns",
+            lambda x: stats.compute_sortino_ratio(x.dropna().values),
+        ),
+        max_drawdown=("returns", lambda x: stats.compute_max_drawdown(x.dropna().values)),
+        var=("returns", lambda x: stats.compute_var(x.dropna().values)),
+        cvar=("returns", lambda x: stats.compute_cvar(x.dropna().values)),
+        final_pnl=("returns", lambda x: stats.compute_final_pnl(x.dropna().values)),
     )
 
     # scorecard.index = [str(pd.Timestamp(itm).date()) for itm in scorecard.index]
@@ -149,12 +136,12 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
 
     returns = portfolio["returns"].dropna().values
 
-    scorecard.loc["Total", "Sharpe-Ratio"] = compute_sharpe_ratio(returns)
-    scorecard.loc["Total", "Sortino-Ratio"] = compute_sortino_ratio(returns)
-    scorecard.loc["Total", "MaxDD"] = compute_max_drawdown(returns)
-    scorecard.loc["Total", "VaR"] = compute_var(returns)
-    scorecard.loc["Total", "CVaR"] = compute_cvar(returns)
-    scorecard.loc["Total", "FinalP&L"] = compute_final_pnl(returns)
+    scorecard.loc["Total", "Sharpe-Ratio"] = stats.compute_sharpe_ratio(returns)
+    scorecard.loc["Total", "Sortino-Ratio"] = stats.compute_sortino_ratio(returns)
+    scorecard.loc["Total", "MaxDD"] = stats.compute_max_drawdown(returns)
+    scorecard.loc["Total", "VaR"] = stats.compute_var(returns)
+    scorecard.loc["Total", "CVaR"] = stats.compute_cvar(returns)
+    scorecard.loc["Total", "FinalP&L"] = stats.compute_final_pnl(returns)
 
     return scorecard.T
 
@@ -227,6 +214,21 @@ def estimate_correlation(
     corr = corr.mean(axis=0)
     corr = corr_nearest(corr)
     return pd.DataFrame(corr, index=returns.columns, columns=returns.columns)
+
+
+def compute_robust_distance(corr: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compute a robust version of distance metric from correlation
+
+    Args:
+        corr: input correlation matrix
+
+    Returns:
+        robust distance
+
+    """
+
+    return np.sqrt(1.0 - np.clip(corr, a_min=-1, a_max=1))
 
 
 if __name__ == "__main__":
