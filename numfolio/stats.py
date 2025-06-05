@@ -18,16 +18,26 @@ import statsmodels.api as sm
 
 from scipy.optimize import minimize_scalar
 
-__all__ = ['compute_cvar', 'compute_cvar_mid', 'compute_var', 'compute_evar',
-           'compute_raroc', 'compute_final_pnl', 'compute_sharpe_ratio', 'compute_sortino_ratio',
-           'compute_max_drawdown', 'compute_tail_ratio', 'compute_omega_ratio',
-           'compute_calmar_ratio', 'compute_downside_risk', 'compute_stability_of_timeseries',
-           'compute_final_pnl_percentage',
-           ]
+__all__ = [
+    "compute_cvar",
+    "compute_cvar_mid",
+    "compute_var",
+    "compute_evar",
+    "compute_raroc",
+    "compute_final_pnl",
+    "compute_sharpe_ratio",
+    "compute_sortino_ratio",
+    "compute_max_drawdown",
+    "compute_tail_ratio",
+    "compute_omega_ratio",
+    "compute_calmar_ratio",
+    "compute_downside_risk",
+    "compute_stability_of_timeseries",
+    "compute_final_pnl_percentage",
+]
 
 annualized_factor = np.sqrt(252.0)
 _minimum_size = 4
-
 
 
 @numba.njit("float64[:](float64[:])", cache=True)
@@ -420,7 +430,9 @@ def compute_final_pnl(returns: np.ndarray) -> float:
 
 
 @numba.njit
-def compute_final_pnl_percentage(returns: np.ndarray, baseline: float | None = None) -> float:
+def compute_final_pnl_percentage(
+    returns: np.ndarray, baseline: float | None = None
+) -> float:
     """
     Compute the final P&L as a percentage
 

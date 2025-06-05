@@ -5,33 +5,37 @@ core.py
 
 A module for core functionalities.
 """
-import inspect
+
 import sys
+import inspect
+import warnings
+
 from inspect import signature
 
-import warnings
 import numpy as np
 import pandas as pd
-from arch.bootstrap import optimal_block_length, CircularBlockBootstrap
-from joblib import Parallel, delayed
 
-from .stats import compute_sharpe_ratio, compute_sortino_ratio, compute_max_drawdown, compute_var, compute_cvar, \
-    compute_final_pnl
+from joblib import Parallel, delayed
+from arch.bootstrap import CircularBlockBootstrap, optimal_block_length
 from sklearn.pipeline import Pipeline
 from sklearn.covariance import (LedoitWolf, GraphicalLassoCV,
                                 EmpiricalCovariance)
 from sklearn.preprocessing import StandardScaler
 from statsmodels.stats.correlation_tools import corr_nearest
 
+from .stats import (compute_var, compute_cvar, compute_final_pnl,
+                    compute_max_drawdown, compute_sharpe_ratio,
+                    compute_sortino_ratio)
 
-__all__ = ['estimate_correlation', 'bootstrap_metric', 'get_scorecard']
+__all__ = ["estimate_correlation", "bootstrap_metric", "get_scorecard"]
+
 
 def bootstrap_metric(
     returns: np.ndarray,
     metric: str = "sharpe_ratio",
     n_bootstraps: int = 1000,
     n_jobs: int = 2,
-        min_length: int = 5
+    min_length: int = 5,
 ) -> np.ndarray:
     """
     Average results using bootstrapping procedure
@@ -191,7 +195,7 @@ def estimate_correlation(
     rolling_window: int = 5,
     n_bootstraps: int = 100,
     n_jobs: int = 2,
-min_length: int = 5
+    min_length: int = 5,
 ) -> pd.DataFrame:
     """
     Estimate the correlation matrix using a bootstrap procedure
@@ -223,7 +227,6 @@ min_length: int = 5
     corr = corr.mean(axis=0)
     corr = corr_nearest(corr)
     return pd.DataFrame(corr, index=returns.columns, columns=returns.columns)
-
 
 
 if __name__ == "__main__":
