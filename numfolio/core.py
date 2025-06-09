@@ -99,10 +99,6 @@ def bootstrap_metric(
     return np.array(result)
 
 
-def _apply_metric(returns: pd.Series, func: Callable) -> float:
-    return func(returns.dropna().values)
-
-
 def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
     """
     Generate a performance scorecard of portfolio metrics aggregated by period.
@@ -135,67 +131,74 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
 
     """
 
-    existing_cols = set(portfolio.columns)
-
-    if "pnl" not in existing_cols and "returns" not in existing_cols:
+    if "pnl" not in portfolio.columns and "returns" not in portfolio.columns:
         raise ValueError("Portfolio must contain at least 'pnl' or 'returns' column.")
 
     portfolio = portfolio.copy()
 
     if "returns" not in portfolio:
         portfolio["returns"] = portfolio["pnl"].diff()
-    if "pnl" not in portfolio:
+    elif "pnl" not in portfolio.columns:
         portfolio["pnl"] = portfolio["returns"].cumsum()
 
-    freq_map = {"Y": "%Y", "Q": "%Y-Q%q", "M": "%Y-%m"}
-    if freq not in freq_map:
-        raise ValueError("Frequency must be one of 'Y', 'Q', 'M'.")
+    map_freq = [
+        ("Y", {"year": "Y"}),
+        ("Q", {"year": "Y", "quarter": "Q"}),
+        ("M", {"year": "Y", "month": ""}),
+    ]
 
-    # Determine period labels
-    if freq == "Q":
-        periods = portfolio.index.to_period("Q").astype(str)
-    else:
-        periods = portfolio.index.strftime(freq_map[freq])
-    portfolio["Period"] = periods
+    idx = [itm[0] for itm in map_freq].index(freq)
+    keys = map_freq[idx][1].keys()
+    template = map_freq[idx][1].values()
 
-    metric_funcs = {
-        "Sharpe-Ratio": stats.compute_sharpe_ratio,
-        "Sortino-Ratio": stats.compute_sortino_ratio,
-        "MaxDD": stats.compute_max_drawdown,
-        "VaR": stats.compute_var,
-        "CVaR": stats.compute_cvar,
-        "FinalP&L": stats.compute_final_pnl,
-    }
+    index = portfolio.index
+    vals = np.array([getattr(index, k) for k in keys]).T.astype(str)
 
-    agg_dict = {
-        "returns": {
-            key: (lambda x, func=func: _apply_metric(x, func))
-            for key, func in metric_funcs.items()
-        }
-    }
+    portfolio.loc[:, "freq"] = [
+        "-".join(f"{t}{x.zfill(2) if freq == 'M' else x}" for t, x in zip(template, itm))
+        for itm in vals
+    ]
 
-    # Apply aggregation
-    grouped = portfolio.groupby("Period").agg(
-        {col: funcs for col, funcs in agg_dict.items()}
+    scorecard = portfolio.groupby("freq").agg(
+        sharpe_ratio=("returns", lambda x: stats.compute_sharpe_ratio(x.dropna().values)),
+        sortino_ratio=(
+            "returns",
+            lambda x: stats.compute_sortino_ratio(x.dropna().values),
+        ),
+        max_drawdown=("returns", lambda x: stats.compute_max_drawdown(x.dropna().values)),
+        var=("returns", lambda x: stats.compute_var(x.dropna().values)),
+        cvar=("returns", lambda x: stats.compute_cvar(x.dropna().values)),
+        final_pnl=("returns", lambda x: stats.compute_final_pnl(x.dropna().values)),
     )
 
-    # Flatten MultiIndex columns if necessary
-    if isinstance(grouped.columns, pd.MultiIndex):
-        grouped.columns = grouped.columns.get_level_values(1)
+    # scorecard.index = [str(pd.Timestamp(itm).date()) for itm in scorecard.index]
 
-    # Compute Total row
-    total_metrics = {
-        key: func(portfolio["returns"].dropna().values)
-        for key, func in metric_funcs.items()
-    }
-    total_df = pd.DataFrame(total_metrics, index=["Total"])
+    scorecard.index.name = "Period"
+    # reset columns name
+    # scorecard = scorecard.droplevel(0, axis=1)
 
-    # Combine
-    scorecard = pd.concat([grouped, total_df])
-    scorecard = scorecard.T
-    scorecard.index.name = None
+    scorecard.rename(
+        columns={
+            "sharpe_ratio": "Sharpe-Ratio",
+            "sortino_ratio": "Sortino-Ratio",
+            "max_drawdown": "MaxDD",
+            "var": "VaR",
+            "cvar": "CVaR",
+            "final_pnl": "FinalP&L",
+        },
+        inplace=True,
+    )
 
-    return scorecard
+    returns = portfolio["returns"].dropna().values
+
+    scorecard.loc["Total", "Sharpe-Ratio"] = stats.compute_sharpe_ratio(returns)
+    scorecard.loc["Total", "Sortino-Ratio"] = stats.compute_sortino_ratio(returns)
+    scorecard.loc["Total", "MaxDD"] = stats.compute_max_drawdown(returns)
+    scorecard.loc["Total", "VaR"] = stats.compute_var(returns)
+    scorecard.loc["Total", "CVaR"] = stats.compute_cvar(returns)
+    scorecard.loc["Total", "FinalP&L"] = stats.compute_final_pnl(returns)
+
+    return scorecard.T
 
 
 def compute_returns(x: pd.Series) -> float:

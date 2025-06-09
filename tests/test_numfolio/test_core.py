@@ -244,10 +244,11 @@ class TestGetScorecard(unittest.TestCase):
             {"returns": returns, "ptf": np.arange(returns.size)}, index=index
         )
 
-        for freq in ["Y", "M", "Q"]:
+        for freq in ["Y", "Q", "M"]:
             n_samples = data.resample(freq).last().shape[0]
 
             obj = get_scorecard(data, freq=freq)
+
             self.assertIsInstance(obj, pd.DataFrame)
             self.assertEqual(obj.shape[1], n_samples + 1)
             self.assertGreater(obj.shape[0], 0)

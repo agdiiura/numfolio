@@ -9,9 +9,13 @@ risk metrics, and correlations using modern statistical and machine learning met
 ## 🚀 Features
 
 ✅ Bootstrapped metric estimation (e.g., Sharpe Ratio, Sortino Ratio)
+
 ✅ Automatic Scorecard Generation with time-based aggregation (Yearly, Quarterly, Monthly)
+
 ✅ Covariance and Correlation estimation with robust shrinkage methods
+
 ✅ Parallel computation for scalability
+
 ✅ Clean, consistent API inspired by scikit-learn & pandas
 
 
