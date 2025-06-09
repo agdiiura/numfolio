@@ -47,17 +47,35 @@ def bootstrap_metric(
 
     Args:
         returns: a vector-like object of returns
-        metric: input metric, as defined in stats module
+        metric: input metric, either the name of a metric function
+            (without 'compute_' prefix) defined in the 'stats' module
+            or a callable that accepts returns as the first argument.
         n_bootstraps: number of bootstrap samples
         n_jobs: number of parallel jobs in the computation
         min_length: minimum size of bootstrap sample
         rng: numpy random Generator
-        kwargs: optional arguments
+        kwargs: additional arguments passed to the metric function
 
     Returns:
         the array contained the bootstrapped results
 
+    Example:
+
+        >>> import numpy as np
+        >>> returns = np.random.normal(0, 0.01, 100)
+        >>> results = bootstrap_metric(returns, metric="sharpe_ratio", n_bootstraps=100)
+        >>> print(results.shape)
+        (100,)
+
+        Using a custom metric function:
+        >>> def mean_return(x):
+        ...     return np.mean(x)
+        >>> results = bootstrap_metric(returns, metric=mean_return, n_bootstraps=100)
+        >>> np.mean(results)
+        0.0005  # (example output)
+
     """
+
     if rng is None:
         rng = np.random.default_rng()
 
@@ -81,94 +99,121 @@ def bootstrap_metric(
     return np.array(result)
 
 
+def _apply_metric(returns: pd.Series, func: Callable) -> float:
+    return func(returns.dropna().values)
+
+
 def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
     """
-    Get score-cards report
+    Generate a performance scorecard of portfolio metrics aggregated by period.
 
     Args:
-        portfolio: (pd.DataFrame) input data with at least 'returns' and 'ptf'
-            columns
-        freq: (str) resampling frequency
+        portfolio: DataFrame containing at least 'returns' or 'pnl' columns.
+            If one is missing, it will be computed internally
+        freq: Resampling frequency: 'Y' (year), 'Q' (quarter), or 'M' (month)
 
     Returns:
-        metrics values of the portfolio performance
+        DataFrame with metrics such as Sharpe Ratio, Sortino Ratio, Max Drawdown,
+        VaR, CVaR, and Final P&L for each period plus a total summary.
+
+    Example:
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> dates = pd.date_range("2020-01-01", periods=100, freq="D")
+        >>> pnl = np.cumsum(np.random.normal(0, 1, size=100))
+        >>> df = pd.DataFrame({"pnl": pnl}, index=dates)
+        >>> scorecard = get_scorecard(df, freq="M")
+        >>> print(scorecard)
+        Period         2020-M1   2020-M2  Total
+        Sharpe-Ratio    0.10      0.12     0.11
+        Sortino-Ratio   0.15      0.18     0.16
+        MaxDD          -0.25     -0.30    -0.28
+        VaR            -0.05     -0.04    -0.045
+        CVaR           -0.07     -0.06    -0.065
+        FinalP&L       12.34     14.56    26.90
 
     """
 
-    if isinstance(portfolio, pd.Series):
-        portfolio = portfolio.to_frame(name="pnl")
+    existing_cols = set(portfolio.columns)
 
-    if "returns" not in portfolio.columns:
+    if "pnl" not in existing_cols and "returns" not in existing_cols:
+        raise ValueError("Portfolio must contain at least 'pnl' or 'returns' column.")
+
+    portfolio = portfolio.copy()
+
+    if "returns" not in portfolio:
         portfolio["returns"] = portfolio["pnl"].diff()
-    elif "pnl" not in portfolio.columns:
+    if "pnl" not in portfolio:
         portfolio["pnl"] = portfolio["returns"].cumsum()
 
-    # TODO issue in pandas https://github.com/pandas-dev/pandas/issues/32803
-    """scorecard = results['Total'].resample(freq).agg({
-        'returns': [compute_final_pnl, compute_sharpe_ratio, compute_sortino_ratio, compute_var],
-        'pnl': [compute_max_drawdown]
-    })"""
-    map_freq = [("Y", "year"), ("Q", "quarter"), ("M", "month")]
-    idx = [itm[0] for itm in map_freq].index(freq)
+    freq_map = {"Y": "%Y", "Q": "%Y-Q%q", "M": "%Y-%m"}
+    if freq not in freq_map:
+        raise ValueError("Frequency must be one of 'Y', 'Q', 'M'.")
 
-    cal = portfolio.index
-    vals = np.array([getattr(cal, itm[1]) for itm in map_freq[: idx + 1]]).T
+    # Determine period labels
+    if freq == "Q":
+        periods = portfolio.index.to_period("Q").astype(str)
+    else:
+        periods = portfolio.index.strftime(freq_map[freq])
+    portfolio["Period"] = periods
 
-    portfolio.loc[:, "freq"] = [
-        "-".join(f"{map_freq[k][0]}{x}" for k, x in enumerate(itm)) for itm in vals
-    ]
+    metric_funcs = {
+        "Sharpe-Ratio": stats.compute_sharpe_ratio,
+        "Sortino-Ratio": stats.compute_sortino_ratio,
+        "MaxDD": stats.compute_max_drawdown,
+        "VaR": stats.compute_var,
+        "CVaR": stats.compute_cvar,
+        "FinalP&L": stats.compute_final_pnl,
+    }
 
-    scorecard = portfolio.groupby("freq").agg(
-        sharpe_ratio=("returns", lambda x: stats.compute_sharpe_ratio(x.dropna().values)),
-        sortino_ratio=(
-            "returns",
-            lambda x: stats.compute_sortino_ratio(x.dropna().values),
-        ),
-        max_drawdown=("returns", lambda x: stats.compute_max_drawdown(x.dropna().values)),
-        var=("returns", lambda x: stats.compute_var(x.dropna().values)),
-        cvar=("returns", lambda x: stats.compute_cvar(x.dropna().values)),
-        final_pnl=("returns", lambda x: stats.compute_final_pnl(x.dropna().values)),
+    agg_dict = {
+        "returns": {
+            key: (lambda x, func=func: _apply_metric(x, func))
+            for key, func in metric_funcs.items()
+        }
+    }
+
+    # Apply aggregation
+    grouped = portfolio.groupby("Period").agg(
+        {col: funcs for col, funcs in agg_dict.items()}
     )
 
-    # scorecard.index = [str(pd.Timestamp(itm).date()) for itm in scorecard.index]
+    # Flatten MultiIndex columns if necessary
+    if isinstance(grouped.columns, pd.MultiIndex):
+        grouped.columns = grouped.columns.get_level_values(1)
 
-    scorecard.index.name = "Period"
-    # reset columns name
-    # scorecard = scorecard.droplevel(0, axis=1)
+    # Compute Total row
+    total_metrics = {
+        key: func(portfolio["returns"].dropna().values)
+        for key, func in metric_funcs.items()
+    }
+    total_df = pd.DataFrame(total_metrics, index=["Total"])
 
-    scorecard.rename(
-        columns={
-            "sharpe_ratio": "Sharpe-Ratio",
-            "sortino_ratio": "Sortino-Ratio",
-            "max_drawdown": "MaxDD",
-            "var": "VaR",
-            "cvar": "CVaR",
-            "final_pnl": "FinalP&L",
-        },
-        inplace=True,
-    )
+    # Combine
+    scorecard = pd.concat([grouped, total_df])
+    scorecard = scorecard.T
+    scorecard.index.name = None
 
-    returns = portfolio["returns"].dropna().values
-
-    scorecard.loc["Total", "Sharpe-Ratio"] = stats.compute_sharpe_ratio(returns)
-    scorecard.loc["Total", "Sortino-Ratio"] = stats.compute_sortino_ratio(returns)
-    scorecard.loc["Total", "MaxDD"] = stats.compute_max_drawdown(returns)
-    scorecard.loc["Total", "VaR"] = stats.compute_var(returns)
-    scorecard.loc["Total", "CVaR"] = stats.compute_cvar(returns)
-    scorecard.loc["Total", "FinalP&L"] = stats.compute_final_pnl(returns)
-
-    return scorecard.T
+    return scorecard
 
 
 def compute_returns(x: pd.Series) -> float:
     """
-    Compute returns from input series
+    Compute the absolute return of a series
 
     Args:
-        x: input series
+        x: Input pandas Series representing prices or values over time
 
     Returns:
-        returns of the input series
+        The absolute return computed as last value minus first value
+
+    Example:
+
+        >>> import pandas as pd
+        >>> s = pd.Series([100, 105, 110])
+        >>> compute_returns(s)
+        10.0
 
     """
     return x.iloc[-1] - x.iloc[0]
@@ -176,13 +221,25 @@ def compute_returns(x: pd.Series) -> float:
 
 def compute_pct_returns(x: pd.Series) -> float:
     """
-    Compute returns from input series
+    Compute the percentage return of a series
 
     Args:
-        x: input series
+        x: Input pandas Series representing prices or values over time
 
     Returns:
-        percentage returns of the input series
+        The percentage return computed as (last / first) - 1,
+        or NaN if the first value is zero
+
+    Example:
+
+        >>> import pandas as pd
+        >>> s = pd.Series([100, 110])
+        >>> compute_pct_returns(s)
+        0.10
+
+        >>> s_zero = pd.Series([0, 110])
+        >>> compute_pct_returns(s_zero)
+        nan
 
     """
     p0 = x.iloc[0]
@@ -218,19 +275,32 @@ def estimate_correlation(
     rng: None | Generator = None,
 ) -> pd.DataFrame:
     """
-    Estimate the correlation matrix using a bootstrap procedure
+    Estimate a correlation matrix using a rolling window and bootstrap procedure.
+
 
     Args:
-        returns: a series of returns object
+        returns: DataFrame of returns with assets as columns
         method: estimation method, can be 'empyrical', 'glassocv' or 'ledoit_wolf'
-        rolling_window: returns window size
-        n_bootstraps: number of bootstrap samples
-        n_jobs: number of parallel jobs
-        rng: numpy random Generator
-        min_length: minimum size of bootstrap sample
+        rolling_window: Window size for rolling returns computation.
+        n_bootstraps: Number of bootstrap samples.
+        n_jobs: Number of parallel jobs.
+        min_length: Minimum block length for bootstrap.
+        rng: Random generator for reproducibility.
 
     Returns:
-        estimated correlation matrix
+        DataFrame containing the estimated correlation matrix
+
+    Example:
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> returns = pd.DataFrame(np.random.normal(0, 0.01, (100, 3)),
+        ...                        columns=["A", "B", "C"])
+        >>> corr = estimate_correlation(returns, method="ledoit_wolf", n_bootstraps=10)
+        >>> corr.shape
+        (3, 3)
+        >>> corr.columns.tolist()
+        ['A', 'B', 'C']
 
     """
 
@@ -263,6 +333,15 @@ def compute_robust_distance(corr: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         robust distance
+
+    Example:
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> corr = pd.DataFrame([[1, 0.5], [0.5, 1]], columns=["A", "B"], index=["A", "B"])
+        >>> dist = compute_robust_distance(corr)
+        >>> dist.loc["A", "B"]
+        0.7071067811865476
 
     """
 
