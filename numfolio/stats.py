@@ -4,12 +4,6 @@ stats.py
 --------
 
 A module for statistical functions.
-
-The usual signature for this module is the following
-
->>> def compute_something(returns: np.ndarray, **kwargs) -> float:
->>>     # do something
->>>     # return something
 """
 
 import sys
@@ -43,37 +37,73 @@ annualized_factor = np.sqrt(252.0)
 
 @numba.njit("float64[:](float64[:])", cache=True)
 def _compute_pnl(returns: np.ndarray) -> np.ndarray:
-    """Compute PNL from input returns"""
+    """
+    Compute cumulative PNL from input returns.
+
+    Args:
+        returns: array-like of returns
+
+    Returns:
+        cumulative PNL array
+
+    Examples:
+        >>> _compute_pnl(np.array([0.01, -0.02, 0.03]))
+        array([0.01, -0.01, 0.02])
+
+        >>> _compute_pnl(np.array([0.1, 0.1, 0.1]))
+        array([0.1, 0.2, 0.3])
+
+    """
     pnl = returns[np.isfinite(returns)].cumsum()
     return pnl[np.isfinite(pnl)]
 
 
 @numba.njit("float64[:](float64[:])", cache=True)
 def _compute_loss(returns: np.ndarray) -> np.ndarray:
-    """Compute Loss from input returns"""
+    """
+    Compute losses (negatives) from input returns.
+
+    Args:
+        returns: array-like of returns
+
+    Returns:
+        losses array (negatives of returns)
+
+    Examples:
+        >>> _compute_loss(np.array([0.01, -0.02, 0.03]))
+        array([-0.01,  0.02, -0.03])
+
+        >>> _compute_loss(np.array([-0.05, 0.1, 0.0]))
+        array([0.05, -0.1 , -0. ])
+
+    """
     return -returns[np.isfinite(returns)]
 
 
 @numba.njit
 def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     """
-    Compute the Sharpe-ratio
-
-    • Sharpe, William F.
-        "The sharpe ratio."
-        Journal of portfolio management 21.1 (1994): 49-58.
+    Compute the annualized Sharpe ratio of the returns.
 
     Args:
         returns: a vector-like object of returns
         r: risk-free level
 
     Returns:
-        the Sharpe-ratio value
+        annualized Sharpe-ratio value
 
     Examples:
+        >>> compute_sharpe_ratio(np.array([0.01, 0.02, 0.03]), r=0.0)
+        12.598349018279691
 
-        >>> ret = [0, -1, 1]
-        >>> compute_sharpe_ratio(ret, r=0.1)
+        >>> compute_sharpe_ratio(np.array([0.0, 0.0, 0.0]), r=0.0)
+        nan
+
+    References:
+
+        Sharpe, William F.
+        "The sharpe ratio."
+        Journal of portfolio management 21.1 (1994): 49-58.
 
     """
     std = np.nanstd(returns)
@@ -86,11 +116,7 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 @numba.njit
 def compute_sortino_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     """
-    Compute the Sortino-ratio
-
-    • Sortino, Frank A., and Lee N. Price.
-        "Performance measurement in a downside risk framework."
-        The Journal of Investing 3.3 (1994): 59-64.
+    Compute the annualized Sortino-ratio, penalizing downside volatility only
 
     Args:
         returns: a vector-like object of returns
@@ -101,8 +127,17 @@ def compute_sortino_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_sortino_ratio(ret, r=0.1)
+        >>> compute_sortino_ratio(np.array([0.01, 0.02, -0.01]), r=0.0)
+        12.598349018279691
+
+        >>> compute_sortino_ratio(np.array([-0.01, -0.02, -0.03]), r=0.0)
+        nan
+
+    References:
+
+        Sortino, Frank A., and Lee N. Price.
+        "Performance measurement in a downside risk framework."
+        The Journal of Investing 3.3 (1994): 59-64.
 
     """
     downside_deviations = returns[returns < r]
@@ -116,11 +151,7 @@ def compute_sortino_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 @numba.njit
 def compute_downside_risk(returns: np.ndarray, r: float = 0.0) -> float:
     """
-    Compute the Downside Risk measure
-
-    • Nawrocki, David N.
-        "A brief history of downside risk measures."
-        The Journal of Investing 8.3 (1999): 9-25
+    Compute the annualized Downside Risk measure
 
     Args:
         returns: a vector-like object of returns
@@ -131,12 +162,21 @@ def compute_downside_risk(returns: np.ndarray, r: float = 0.0) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_downside_risk(ret, r=0.1)
+        >>> compute_downside_risk(np.array([0.01, -0.02, 0.03]), r=0.0)
+        2.82842712474619
+
+        >>> compute_downside_risk(np.array([0.1, 0.2, 0.3]), r=0.0)
+        0.0
+
+    References:
+
+        Nawrocki, David N.
+        "A brief history of downside risk measures."
+        The Journal of Investing 8.3 (1999): 9-25
 
     """
     downside_deviations = returns[returns < r]
-    std = downside_deviations.std()
+    std = np.nanstd(downside_deviations)
     if np.isfinite(std):
         return annualized_factor * std
 
@@ -174,8 +214,11 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_max_drawdown(ret)
+        >>> compute_max_drawdown(np.array([0.0, -0.1, 0.2, -0.1, 0.3]))
+        0.30000000000000004
+
+        >>> compute_max_drawdown(np.array([0.1, 0.2, 0.3]))
+        0.0
 
     """
     pnl = _compute_pnl(returns)
@@ -192,23 +235,28 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
 @numba.njit
 def compute_var(returns: np.ndarray, alpha: float | np.ndarray = 0.05) -> float:
     """
-    Compute VaR using numba through the quantile method
-
-    • Artzner, Philippe, et al.
-        "Coherent measures of risk."
-        Mathematical finance 9.3 (1999): 203-228.
+    Compute Value-at-Risk (VaR) using the quantile method
 
     Args:
         returns: a vector-like object of returns
         alpha: quantile level
 
     Returns:
-        value-at-risk
+        value-at-risk at quantile alpha
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_var(ret)
+        >>> compute_var(np.array([0.01, -0.02, 0.03]))
+        0.02
+
+        >>> compute_var(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        0.05
+
+    References:
+
+        Artzner, Philippe, et al.
+        "Coherent measures of risk."
+        Mathematical finance 9.3 (1999): 203-228.
 
     """
 
@@ -221,36 +269,40 @@ def compute_cvar(
     returns: np.ndarray, alpha: float = 0.05, n_step: int = 100, low_alpha: float = 0.001
 ) -> float:
     """
-    Compute CVaR by approximating the integral with the discrete
-    version of it. The method uses numba.
-
-    • Artzner, Philippe, et al.
-        "Coherent measures of risk."
-        Mathematical finance 9.3 (1999): 203-228.
-
-    • Rockafellar, R. Tyrrell, and Stanislav Uryasev.
-        "Optimization of conditional value-at-risk."
-        Journal of risk 2 (2000): 21-42.
-
-    • Norton, Matthew, Valentyn Khokhlov, and Stan Uryasev.
-        "Calculating CVaR and bPOE for common probability
-        distributions with application to portfolio optimization
-        and density estimation."
-        Annals of Operations Research 299.1 (2021): 1281-1315.
+    Compute Conditional Value-at-Risk (CVaR) by numerical approximation.
 
     Args:
         returns: a vector-like object of returns
         alpha: quantile level
         n_step: number of step in the numerical approximation
-        low_alpha: low level of alpha
+        low_alpha: low level of alpha used in integration
 
     Returns:
         conditional value-at-risk
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_cvar(ret)
+        >>> compute_cvar(np.array([0.01, -0.02, 0.03]))
+        0.019970000000000004
+
+        >>> compute_cvar(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        0.0499
+
+    References:
+
+        Artzner, Philippe, et al.
+        "Coherent measures of risk."
+        Mathematical finance 9.3 (1999): 203-228.
+
+        Rockafellar, R. Tyrrell, and Stanislav Uryasev.
+        "Optimization of conditional value-at-risk."
+        Journal of risk 2 (2000): 21-42.
+
+        Norton, Matthew, Valentyn Khokhlov, and Stan Uryasev.
+        "Calculating CVaR and bPOE for common probability
+        distributions with application to portfolio optimization
+        and density estimation."
+        Annals of Operations Research 299.1 (2021): 1281-1315.
 
     """
 
@@ -269,11 +321,7 @@ def _compute_evar(z: float, returns: np.ndarray, alpha: float = 0.05) -> float:
 
 def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
     """
-    Compute the EVaR
-
-    • Ahmadi-Javid, Amir.
-        "Entropic value-at-risk: A new coherent risk measure."
-        Journal of Optimization Theory and Applications 155.3 (2012): 1105-1123.
+    Compute Entropic Value at Risk (EVaR)
 
     Args:
         returns: a vector-like object of returns
@@ -284,8 +332,17 @@ def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_evar(ret)
+        >>> compute_evar(np.array([0.01, -0.02, 0.03]))
+        0.013531...
+
+        >>> compute_evar(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        0.067...
+
+    References:
+
+        Ahmadi-Javid, Amir.
+        "Entropic value-at-risk: A new coherent risk measure."
+        Journal of Optimization Theory and Applications 155.3 (2012): 1105-1123.
 
     """
 
@@ -300,13 +357,9 @@ def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
 @numba.njit
 def compute_tail_ratio(returns: np.ndarray) -> float:
     """
-    Compute the tail ratio, defined as the ration between the 95° percentile
-    over the 5° percentile of the distribution
-
-    • Konno, Hiroshi, Katsuhiro Tanaka, and Rei Yamamoto.
-        "Construction of a portfolio with shorter downside tail
-        and longer upside tail."
-        Computational Optimization and Applications 48.2 (2011): 199-212.
+    Compute the Tail Ratio: ratio of the absolute value of
+    the 95th percentile gains to the absolute value of
+    the 5th percentile losses.
 
     Args:
         returns: a vector-like object of returns
@@ -316,8 +369,18 @@ def compute_tail_ratio(returns: np.ndarray) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_tail_ratio(ret)
+        >>> compute_tail_ratio(np.array([0.01, -0.02, 0.03]))
+        1.5
+
+        >>> compute_tail_ratio(np.array([0.1, -0.05, 0.05]))
+        2.0
+
+    References:
+
+        Konno, Hiroshi, Katsuhiro Tanaka, and Rei Yamamoto.
+        "Construction of a portfolio with shorter downside tail
+        and longer upside tail."
+        Computational Optimization and Applications 48.2 (2011): 199-212.
 
     """
 
@@ -331,11 +394,8 @@ def compute_tail_ratio(returns: np.ndarray) -> float:
 @numba.njit
 def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     """
-    Compute the omega-ratio
-
-    • Kapsos, M., Zymler, S., Christofides, N., & Rustem, B
-        "Optimizing the Omega ratio using linear programming."
-        Journal of Computational Finance 17.4 (2014): 49-57.
+    Compute the annualized Omega ratio, which is the ratio of gains over
+    losses relative to a threshold r.
 
     Args:
         returns: a vector-like object of returns
@@ -346,8 +406,17 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_omega_ratio(ret)
+        >>> compute_omega_ratio(np.array([0.01, 0.02, -0.01]), r=0.0)
+        2.0
+
+        >>> compute_omega_ratio(np.array([-0.01, -0.02, -0.03]), r=0.0)
+        0.0
+
+    References:
+
+        Kapsos, M., Zymler, S., Christofides, N., & Rustem, B
+        "Optimizing the Omega ratio using linear programming."
+        Journal of Computational Finance 17.4 (2014): 49-57.
 
     """
 
@@ -365,17 +434,8 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 # @numba.njit('float64(float64[:], float64)', cache=True) (error with MDD)
 def compute_calmar_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     """
-    Compute the calmar-ratio, defined as the ratio of the expected return
-    over the max-drawdown
-
-    • Magdon-Ismail, Malik, and Amir F. Atiya.
-        "Maximum drawdown."
-        Risk Magazine 17.10 (2004): 99-102.
-
-    • Petroni, Filippo, and Giulia Rotundo.
-        "Effectiveness of measures of performance during speculative bubbles."
-        Physica A: Statistical Mechanics and its
-        Applications 387.15 (2008): 3942-3948.
+    Compute the Calmar ratio: annualized return
+    divided by the maximum drawdown.
 
     Args:
         returns: a vector-like object of returns
@@ -386,8 +446,22 @@ def compute_calmar_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_calmar_ratio(ret, r=0.1)
+        >>> compute_calmar_ratio(np.array([0.01, 0.02, 0.03]))
+        5.7735
+
+        >>> compute_calmar_ratio(np.array([-0.1, 0.05, 0.05]))
+        nan
+
+    References:
+
+        Magdon-Ismail, Malik, and Amir F. Atiya.
+        "Maximum drawdown."
+        Risk Magazine 17.10 (2004): 99-102.
+
+        Petroni, Filippo, and Giulia Rotundo.
+        "Effectiveness of measures of performance during speculative bubbles."
+        Physica A: Statistical Mechanics and its
+        Applications 387.15 (2008): 3942-3948.
 
     """
 
@@ -403,16 +477,8 @@ def compute_raroc(
     returns: np.ndarray, r: float = 0.0, alpha: float | np.ndarray = 0.05
 ) -> float:
     """
-    Compute the RAROC, defined as the ratio of the expected return
+    Compute Risk-Adjusted Return on Capital (RAROC), defined as the ratio of the expected return
     over the VaR
-
-    • Stoughton, Neal M., and Josef Zechner.
-        "Optimal capital allocation using RAROC and EVA."
-        Journal of Financial Intermediation 16.3 (2007): 312-342.
-
-    • Prokopczuk, Marcel, et al.
-        "Quantifying risk in the electricity business: A RAROC-based approach."
-        Energy Economics 29.5 (2007): 1033-1049.
 
     Args:
         returns: a vector-like object of returns
@@ -424,8 +490,21 @@ def compute_raroc(
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_raroc(ret, r=0.1, alpha=0.09)
+        >>> compute_raroc(np.array([0.01, 0.02, -0.01]), alpha=0.05)
+        0.668
+
+        >>> compute_raroc(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        0.0
+
+    References:
+
+        Stoughton, Neal M., and Josef Zechner.
+        "Optimal capital allocation using RAROC and EVA."
+        Journal of Financial Intermediation 16.3 (2007): 312-342.
+
+        Prokopczuk, Marcel, et al.
+        "Quantifying risk in the electricity business: A RAROC-based approach."
+        Energy Economics 29.5 (2007): 1033-1049.
 
     """
 
@@ -439,18 +518,21 @@ def compute_raroc(
 @numba.njit
 def compute_final_pnl(returns: np.ndarray) -> float:
     """
-    Compute the final P&L
+    Compute the final PnL value
 
     Args:
         returns: a vector-like object of returns
 
     Returns:
-        final value of the pnl
+        final PnL (last cumulative sum value)
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_final_pnl(ret)
+        >>> compute_final_pnl(np.array([0.01, 0.02, -0.01]))
+        0.02
+
+        >>> compute_final_pnl(np.array([-0.1, 0.05, 0.05]))
+        0.0
 
     """
     pnl = _compute_pnl(returns)
@@ -460,19 +542,22 @@ def compute_final_pnl(returns: np.ndarray) -> float:
 @numba.njit
 def compute_final_pnl_percentage(returns: np.ndarray, baseline: float = 1) -> float:
     """
-    Compute the final P&L as a percentage
+    Compute final PnL as percentage (multiplied by 100).
 
     Args:
         returns: a vector-like object of returns
         baseline: default value for portfolio
 
     Returns:
-        final value of the pnl as a percentage
+        final PnL percentage
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_final_pnl_percentage(ret)
+        >>> compute_final_pnl_percentage(np.array([0.01, 0.02, -0.01]))
+        2.0
+
+        >>> compute_final_pnl_percentage(np.array([-0.1, 0.05, 0.05]))
+        0.0
 
     """
     return 100.0 * compute_final_pnl(returns) / baseline
@@ -480,19 +565,22 @@ def compute_final_pnl_percentage(returns: np.ndarray, baseline: float = 1) -> fl
 
 def compute_stability_of_timeseries(returns: np.ndarray) -> float:
     """
-    Compute the stability of the timeseries.
-    Computes an ordinary least squares linear fit, and returns R-squared.
+    Compute the stability of a time series by regressing
+    cumulative returns against time.
 
     Args:
         returns: a vector-like object of returns
 
     Returns:
-        the R^2 of the regression
+        stability coefficient (R-squared of regression)
 
     Examples:
 
-        >>> ret = [0, -1, 1]
-        >>> compute_stability_of_timeseries(ret)
+        >>> compute_stability_of_timeseries(np.array([0.01, 0.02, 0.03]))
+        1.0
+
+        >>> compute_stability_of_timeseries(np.array([0.0, 0.0, 0.0]))
+        0.0
 
     """
     pnl = _compute_pnl(returns)

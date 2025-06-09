@@ -40,7 +40,7 @@ def bootstrap_metric(
     n_jobs: int = 2,
     min_length: int = 5,
     rng: None | Generator = None,
-    **kwargs,
+    **kwargs: dict,
 ) -> np.ndarray:
     """
     Compute input metric using bootstrapping procedure

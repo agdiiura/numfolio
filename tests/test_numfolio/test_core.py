@@ -25,10 +25,11 @@ from numfolio.core import (get_scorecard, compute_returns, bootstrap_metric,
                            compute_pct_returns, estimate_correlation,
                            compute_robust_distance)
 
-rng = np.random.default_rng()
-
 N_JOBS = int(os.environ.get("N_JOBS", 8))
 N_BOOTSTRAPS = int(os.environ.get("N_BOOTSTRAPS", 100))
+SEED = int(os.environ.get("SEED", 8))
+
+rng = np.random.default_rng(SEED)
 
 
 def mock_function(returns: np.ndarray) -> float:

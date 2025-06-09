@@ -4,6 +4,8 @@ A python package for portfolio evaluation build on top of Numba
 
 ## Minimal examples
 
+Compute statistics from input returns:
+
 ```python
 import numpy as np
 from numfolio import compute_sharpe_ratio
@@ -15,6 +17,18 @@ returns = np.array([
 sr = compute_sharpe_ratio(returns)
 ## -5.162601446765606
 ```
+
+It is also possible to compute bootstrapping statistics
+```python
+import numpy as np
+from numfolio import compute_cvar, bootstrap_metric
+
+returns = np.random.default_rng(42).standard_t(df=4, size=252)
+m = bootstrap_metric(returns=returns, metric=compute_cvar)
+cvar = m.mean()
+## 3.60224242103749
+```
+
 
 ## Installation
 

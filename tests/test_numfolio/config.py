@@ -8,11 +8,8 @@ The configuration file for tests
 
 import unittest
 
-from sys import platform
 from string import ascii_letters
-from typing import Union, Optional
 from pathlib import Path
-from itertools import product
 
 import numpy as np
 import pandas as pd

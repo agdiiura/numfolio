@@ -23,7 +23,7 @@ from test_numfolio.config import xml_test_folder
 from numfolio import stats
 
 SEED = int(os.environ.get("SEED", 8))
-rng = np.random.default_rng()
+rng = np.random.default_rng(SEED)
 
 
 class TestCompileNumbaFunctions(unittest.TestCase):
