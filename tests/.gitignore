@@ -1,0 +1,4 @@
+*.txt
+*.db
+*.info
+test-reports/
