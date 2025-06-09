@@ -31,6 +31,12 @@ N_JOBS = int(os.environ.get("N_JOBS", 8))
 N_BOOTSTRAPS = int(os.environ.get("N_BOOTSTRAPS", 100))
 
 
+def mock_function(returns: np.ndarray) -> float:
+    """Compute mean"""
+
+    return np.nanmean(returns)
+
+
 class TestComputeReturnsFunctions(unittest.TestCase):
     """A class for test compute_returns/compute_pct_returns function"""
 
@@ -197,6 +203,23 @@ class TestBootstrapMetric(unittest.TestCase):
         """Test the compute_stability_of_timeseries function"""
         self._common_test("stability_of_timeseries")
 
+    def test_callable(self):
+        """Test the execution using a callable object"""
+
+        with self.assertRaises(TypeError):
+            _ = bootstrap_metric(
+                returns=self.returns, metric=1, n_bootstraps=N_BOOTSTRAPS, n_jobs=N_JOBS
+            )
+
+        m = bootstrap_metric(
+            returns=self.returns,
+            metric=mock_function,
+            n_bootstraps=N_BOOTSTRAPS,
+            n_jobs=N_JOBS,
+        )
+
+        self.assertIsInstance(m, np.ndarray)
+
 
 class TestGetScorecard(unittest.TestCase):
     """A class for get_scorecard function"""
@@ -278,6 +301,8 @@ def build_suite():
 
     for t in tests:
         suite.addTest(TestBootstrapMetric(f"test_compute_{t}"))
+
+    TestBootstrapMetric("test_callable")
 
     suite.addTest(TestGetScorecard("test_call"))
 

@@ -23,7 +23,6 @@ from scipy.optimize import minimize_scalar
 
 __all__ = [
     "compute_cvar",
-    "compute_cvar_mid",
     "compute_var",
     "compute_evar",
     "compute_raroc",
@@ -71,6 +70,11 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     Returns:
         the Sharpe-ratio value
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_sharpe_ratio(ret, r=0.1)
+
     """
     std = np.nanstd(returns)
     if np.isfinite(std):
@@ -94,6 +98,11 @@ def compute_sortino_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     Returns:
         the Sortino-ratio value
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_sortino_ratio(ret, r=0.1)
 
     """
     downside_deviations = returns[returns < r]
@@ -119,6 +128,11 @@ def compute_downside_risk(returns: np.ndarray, r: float = 0.0) -> float:
 
     Returns:
         the semideviance value
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_downside_risk(ret, r=0.1)
 
     """
     downside_deviations = returns[returns < r]
@@ -158,6 +172,11 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
     Returns:
         the max-drawdown value
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_max_drawdown(ret)
+
     """
     pnl = _compute_pnl(returns)
 
@@ -185,6 +204,11 @@ def compute_var(returns: np.ndarray, alpha: float | np.ndarray = 0.05) -> float:
 
     Returns:
         value-at-risk
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_var(ret)
 
     """
 
@@ -223,28 +247,15 @@ def compute_cvar(
     Returns:
         conditional value-at-risk
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_cvar(ret)
+
     """
 
     alphas = np.linspace(low_alpha, alpha, n_step)
     return np.nanmean(compute_var(returns=returns, alpha=alphas))
-
-
-@numba.njit
-def compute_cvar_mid(returns: np.ndarray, alpha: float = 0.05) -> float:
-    """
-    Compute CVaR by approximating the integral with
-    the rectangle rule. The method uses numba.
-
-    Args:
-        returns: a vector-like object of returns
-        alpha: quantile level
-
-    Returns:
-        conditional value-at-risk
-
-    """
-
-    return compute_var(returns=returns, alpha=0.5 * alpha)
 
 
 @numba.njit
@@ -270,6 +281,11 @@ def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
 
     Returns:
         the Entropic Value at Risk value
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_evar(ret)
 
     """
 
@@ -298,6 +314,11 @@ def compute_tail_ratio(returns: np.ndarray) -> float:
     Returns:
         the tail-ratio value
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_tail_ratio(ret)
+
     """
 
     den = np.abs(np.nanquantile(returns, 0.05))
@@ -322,6 +343,11 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
     Returns:
         the Omega-ratio value
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_omega_ratio(ret)
 
     """
 
@@ -358,6 +384,11 @@ def compute_calmar_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     Returns:
         the Calmar-ratio value
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_calmar_ratio(ret, r=0.1)
+
     """
 
     mdd = compute_max_drawdown(returns)
@@ -391,6 +422,11 @@ def compute_raroc(
     Returns:
         the RAROC value
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_raroc(ret, r=0.1, alpha=0.09)
+
     """
 
     var = compute_var(returns, alpha=alpha)
@@ -411,6 +447,11 @@ def compute_final_pnl(returns: np.ndarray) -> float:
     Returns:
         final value of the pnl
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_final_pnl(ret)
+
     """
     pnl = _compute_pnl(returns)
     return pnl[-1] - pnl[0]
@@ -428,6 +469,11 @@ def compute_final_pnl_percentage(returns: np.ndarray, baseline: float = 1) -> fl
     Returns:
         final value of the pnl as a percentage
 
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_final_pnl_percentage(ret)
+
     """
     return 100.0 * compute_final_pnl(returns) / baseline
 
@@ -442,6 +488,11 @@ def compute_stability_of_timeseries(returns: np.ndarray) -> float:
 
     Returns:
         the R^2 of the regression
+
+    Examples:
+
+        >>> ret = [0, -1, 1]
+        >>> compute_stability_of_timeseries(ret)
 
     """
     pnl = _compute_pnl(returns)

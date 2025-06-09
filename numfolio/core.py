@@ -9,10 +9,13 @@ A module for core functionalities.
 import inspect
 import warnings
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 
 from joblib import Parallel, delayed
+from numpy.random import Generator
 from arch.bootstrap import CircularBlockBootstrap, optimal_block_length
 from sklearn.pipeline import Pipeline
 from sklearn.covariance import (LedoitWolf, GraphicalLassoCV,
@@ -32,10 +35,11 @@ __all__ = [
 
 def bootstrap_metric(
     returns: np.ndarray,
-    metric: str = "sharpe_ratio",
+    metric: str | Callable = "sharpe_ratio",
     n_bootstraps: int = 1000,
     n_jobs: int = 2,
     min_length: int = 5,
+    rng: None | Generator = None,
     **kwargs,
 ) -> np.ndarray:
     """
@@ -47,19 +51,28 @@ def bootstrap_metric(
         n_bootstraps: number of bootstrap samples
         n_jobs: number of parallel jobs in the computation
         min_length: minimum size of bootstrap sample
+        rng: numpy random Generator
         kwargs: optional arguments
 
     Returns:
         the array contained the bootstrapped results
 
     """
-    module = inspect.getmembers(stats)
-    f = [v for name, v in module if callable(v) and name == f"compute_{metric}"][0]
+    if rng is None:
+        rng = np.random.default_rng()
+
+    if isinstance(metric, str):
+        module = inspect.getmembers(stats)
+        f = [v for name, v in module if callable(v) and name == f"compute_{metric}"][0]
+    elif callable(metric):
+        f = metric
+    else:
+        raise TypeError("metric not defined")
 
     optimal_length = optimal_block_length(returns**2)["circular"]
     optimal_length = max(int(optimal_length.iloc[0]), min_length)
 
-    cb = CircularBlockBootstrap(optimal_length, returns)
+    cb = CircularBlockBootstrap(optimal_length, returns, seed=rng)
     result = Parallel(n_jobs=n_jobs)(
         delayed(lambda x: f(x, **kwargs))(*pos_data)
         for pos_data, kw_data in cb.bootstrap(n_bootstraps)
@@ -202,6 +215,7 @@ def estimate_correlation(
     n_bootstraps: int = 100,
     n_jobs: int = 2,
     min_length: int = 5,
+    rng: None | Generator = None,
 ) -> pd.DataFrame:
     """
     Estimate the correlation matrix using a bootstrap procedure
@@ -212,6 +226,7 @@ def estimate_correlation(
         rolling_window: returns window size
         n_bootstraps: number of bootstrap samples
         n_jobs: number of parallel jobs
+        rng: numpy random Generator
         min_length: minimum size of bootstrap sample
 
     Returns:
@@ -222,7 +237,11 @@ def estimate_correlation(
     returns = returns.cumsum().rolling(rolling_window).apply(compute_returns).dropna()
 
     ol = max(int(optimal_block_length(returns**2)["circular"].median()), min_length)
-    bs = CircularBlockBootstrap(ol, returns)
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    bs = CircularBlockBootstrap(ol, returns, seed=rng)
 
     covariances = Parallel(n_jobs=n_jobs)(
         delayed(lambda x: _fit_covariance_pipeline(x, method=method))(*pos_data)
