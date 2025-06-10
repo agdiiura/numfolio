@@ -62,7 +62,7 @@ def bootstrap_metric(
     Example:
 
         >>> import numpy as np
-        >>> returns = np.random.normal(0, 0.01, 100)
+        >>> returns = np.random.default_rng().normal(loc=0, scale=0.01, size=100)
         >>> results = bootstrap_metric(returns, metric="sharpe_ratio", n_bootstraps=100)
         >>> print(results.shape)
         (100,)

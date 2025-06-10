@@ -64,7 +64,7 @@ import numpy as np
 from numfolio import bootstrap_metric
 
 # Generate fake returns
-returns = np.random.normal(0, 1, 100)
+returns = np.random.default_rng().normal(0, 1, 100)
 
 bootstrapped = bootstrap_metric(returns, metric="sharpe_ratio", n_bootstraps=500)
 print("Bootstrapped Sharpe Ratios:", bootstrapped[:5])
@@ -78,7 +78,7 @@ import numpy as np
 from numfolio import estimate_correlation
 
 dates = pd.date_range("2025-01-01", periods=100, freq="D")
-returns = pd.DataFrame(np.random.normal(0, 1, (100, 3)), columns=["A", "B", "C"], index=dates)
+returns = pd.DataFrame(np.random.default_rng().normal(0, 1, (100, 3)), columns=["A", "B", "C"], index=dates)
 
 correlation = estimate_correlation(returns, method="ledoit_wolf", n_bootstraps=200)
 print(correlation)
