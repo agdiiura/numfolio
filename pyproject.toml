@@ -15,11 +15,7 @@ readme = "README.md"
 authors = [
     {name = "agdiiura", email="andreadiiura@gmail.com"}
 ]
-
-[project.urls]
-Homepage = "https://github.com/agdiiura/numfolio"
-Documentation = "https://numfolio.readthedocs.io/en/stable/index.html"
-Repository = "https://github.com/agdiiura/numfolio.git"
+license = {file = 'LICENSE'}
 
 dependencies = [
     "joblib>=1.3.2",
@@ -30,6 +26,11 @@ dependencies = [
     "arch>=6.3.0",
     "numba>0.59.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/agdiiura/numfolio"
+Documentation = "https://numfolio.readthedocs.io/en/stable/index.html"
+Repository = "https://github.com/agdiiura/numfolio.git"
 
 [project.optional-dependencies]
 build = [
