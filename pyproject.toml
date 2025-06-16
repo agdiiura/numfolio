@@ -15,7 +15,7 @@ readme = "README.md"
 authors = [
     {name = "agdiiura", email="andreadiiura@gmail.com"}
 ]
-
+license = {file = 'LICENSE'}
 
 dependencies = [
     "joblib>=1.3.2",
