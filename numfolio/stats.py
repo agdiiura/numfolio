@@ -599,6 +599,7 @@ def compile_numba_functions(size: int = 10) -> dict:
     results = dict()
     rng = np.random.default_rng()
     values = rng.standard_normal(size)
+    values = values[values != 0]  # remove zeros to avoid division by zero
     for name, f in inspect.getmembers(sys.modules[__name__]):
         if callable(f) and name.startswith("compute_"):
             results[name] = f(values)
