@@ -315,8 +315,8 @@ def _compute_evar(z: float, returns: np.ndarray, alpha: float = 0.05) -> float:
     """Compute the EVaR as a function of the z parameter"""
     if z <= 0 or np.isinf(z):
         return np.inf
-    m = np.nanmean(np.exp(-returns / z))
-    return z * (np.log(m) - np.log(alpha))
+    m = np.nanmean(np.exp(-returns * z))
+    return (np.log(m) - np.log(alpha)) / z
 
 
 def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:

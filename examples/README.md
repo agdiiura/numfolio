@@ -6,3 +6,4 @@
   S&P500 total return data
 * [Correlation](Correlation.ipynb) perform correlation estimation using
   oil-related continuous futures contracts
+* [RiskMetrics](RiskMetrics.ipynb) evaluation of risk metrics for several statistical distribution.
