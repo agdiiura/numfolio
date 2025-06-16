@@ -315,8 +315,8 @@ def _compute_evar(z: float, returns: np.ndarray, alpha: float = 0.05) -> float:
     """Compute the EVaR as a function of the z parameter"""
     if z <= 0 or np.isinf(z):
         return np.inf
-    m = np.nanmean(np.exp(-returns / z))
-    return z * (np.log(m) - np.log(alpha))
+    m = np.nanmean(np.exp(-returns * z))
+    return (np.log(m) - np.log(alpha)) / z
 
 
 def compute_evar(returns: np.ndarray, alpha: float = 0.5) -> float:
@@ -599,6 +599,7 @@ def compile_numba_functions(size: int = 10) -> dict:
     results = dict()
     rng = np.random.default_rng()
     values = rng.standard_normal(size)
+    values = values[values != 0]  # remove zeros to avoid division by zero
     for name, f in inspect.getmembers(sys.modules[__name__]):
         if callable(f) and name.startswith("compute_"):
             results[name] = f(values)

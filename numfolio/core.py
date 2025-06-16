@@ -79,9 +79,15 @@ def bootstrap_metric(
     if rng is None:
         rng = np.random.default_rng()
 
+    if n_bootstraps <= 0:
+        raise ValueError("n_bootstraps must be a positive integer")
+
     if isinstance(metric, str):
         module = inspect.getmembers(stats)
-        f = [v for name, v in module if callable(v) and name == f"compute_{metric}"][0]
+        matches = [v for name, v in module if callable(v) and name == f"compute_{metric}"]
+        if not matches:
+            raise ValueError(f"Metric '{metric}' not found in stats module.")
+        f = matches[0]
     elif callable(metric):
         f = metric
     else:
@@ -252,7 +258,7 @@ def compute_pct_returns(x: pd.Series) -> float:
         return np.nan
 
 
-def _fit_covariance_pipeline(r, method: str):
+def _fit_covariance_pipeline(r: pd.DataFrame, method: str):
     """Fit the covariance pipeline"""
     map_estimators = {
         "empyrical": EmpiricalCovariance,
@@ -309,12 +315,17 @@ def estimate_correlation(
 
     returns = returns.cumsum().rolling(rolling_window).apply(compute_returns).dropna()
 
-    ol = max(int(optimal_block_length(returns**2)["circular"].median()), min_length)
+    optimal_length = max(
+        int(optimal_block_length(returns**2)["circular"].median()), min_length
+    )
+
+    if n_bootstraps <= 0:
+        raise ValueError("n_bootstraps must be a positive integer")
 
     if rng is None:
         rng = np.random.default_rng()
 
-    bs = CircularBlockBootstrap(ol, returns, seed=rng)
+    bs = CircularBlockBootstrap(optimal_length, returns, seed=rng)
 
     covariances = Parallel(n_jobs=n_jobs)(
         delayed(lambda x: _fit_covariance_pipeline(x, method=method))(*pos_data)
