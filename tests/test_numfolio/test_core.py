@@ -347,9 +347,9 @@ def build_suite():
         suite.addTest(TestBootstrapMetric(f"test_compute_{t}"))
 
     suite.addTest(TestBootstrapMetric("test_callable"))
+    suite.addTest(TestBootstrapMetric("test_corner_cases"))
 
     suite.addTest(TestGetScorecard("test_call"))
-    suite.addTest(TestBootstrapMetric("test_corner_cases"))
 
     return suite
 
