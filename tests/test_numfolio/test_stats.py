@@ -53,14 +53,16 @@ class TestComputeStats(unittest.TestCase):
         cls.repeat = 5
         cls.n_nans = 3
 
-        cls.returns = list()
-        cls.positions = list()
+        cls.kwargs_list = list()
         for r in range(cls.repeat):
             values = rng.standard_t(df=6, size=cls.size)
             for n in range(cls.n_nans):
                 idx = rng.integers(0, cls.size)
                 values[idx] = np.nan
-            cls.returns.append(values)
+
+            alpha = rng.uniform(0.01, 0.1)
+            r = rng.uniform(0.01, 0.1)
+            cls.kwargs_list.append({"returns": values, "alpha": alpha, "r": r})
 
     def _common_test(self, function):
         """Test common functionality"""
@@ -71,11 +73,15 @@ class TestComputeStats(unittest.TestCase):
 
         self.assertIn("returns", sig.parameters)
 
-        for k, ret in enumerate(self.returns):
-            kwargs = dict(returns=ret)
+        for k, kwargs in enumerate(self.kwargs_list):
+            kw = kwargs.copy()
+            kw = {key: val for key, val in kw.items() if key in sig.parameters}
 
-            r = f(**kwargs)
-            msg = f"Error with run `{k}`; result = {r}\nreturns: {ret[:10]}...\n"
+            r = f(**kw)
+            msg = (
+                f"Error with run `{k}`; result = {r}\nreturns: {kw['returns'][:10]}..."
+                f"\nalpha: {kw.get('alpha', None)}\nr: {kw.get('r', None)}"
+            )
             self.assertIsInstance(r, float, msg=msg)
             self.assertTrue(pd.notnull(r), msg=msg)
 

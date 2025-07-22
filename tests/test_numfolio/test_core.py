@@ -105,6 +105,22 @@ class TestEstimateCorrelation(unittest.TestCase):
         """Test the ledoit_wolf estimation"""
         self._test_base("ledoit_wolf")
 
+    def test_estimate_correlation_single_column(self):
+        """Test estimate_correlation with single column DataFrame"""
+
+        df = pd.DataFrame(rng.standard_normal(100), columns=["A"])
+        corr = estimate_correlation(df, n_bootstraps=2)
+
+        self.assertEqual(corr.shape, (1, 1))
+        self.assertAlmostEqual(corr.iloc[0, 0], 1.0, places=4)
+
+    def test_estimate_correlation_empty(self):
+        """Test estimate_correlation with empty DataFrame"""
+
+        df = pd.DataFrame()
+        with self.assertRaises(Exception):
+            estimate_correlation(df, n_bootstraps=2)
+
 
 class TestComputeRobustDistance(unittest.TestCase):
     """A class for compute_robust_distance function"""
@@ -126,7 +142,7 @@ class TestComputeRobustDistance(unittest.TestCase):
 
 
 class TestBootstrapMetric(unittest.TestCase):
-    """A class for get_scorecard function"""
+    """A class for bootstrap_metric function"""
 
     @classmethod
     def setUpClass(cls):
@@ -221,6 +237,30 @@ class TestBootstrapMetric(unittest.TestCase):
 
         self.assertIsInstance(m, np.ndarray)
 
+    def test_corner_cases(self):
+        """Test corner cases in the execution"""
+
+        with self.assertRaises(ValueError):
+            _ = bootstrap_metric(
+                returns=self.returns,
+                metric="unknown",
+                n_bootstraps=N_BOOTSTRAPS,
+                n_jobs=N_JOBS,
+            )
+
+        with self.assertRaises(TypeError):
+            _ = bootstrap_metric(
+                returns=self.returns, metric=1, n_bootstraps=N_BOOTSTRAPS, n_jobs=N_JOBS
+            )
+
+        with self.assertRaises(ValueError):
+            _ = bootstrap_metric(
+                returns=self.returns, metric=mock_function, n_bootstraps=0, n_jobs=N_JOBS
+            )
+
+        with self.assertRaises(Exception):
+            bootstrap_metric(np.array([]), metric=mock_function, n_bootstraps=10)
+
 
 class TestGetScorecard(unittest.TestCase):
     """A class for get_scorecard function"""
@@ -281,6 +321,8 @@ def build_suite():
 
     for t in ("empyrical", "glassocv", "ledoit_wolf"):
         suite.addTest(TestEstimateCorrelation(f"test_{t}"))
+    suite.addTest(TestEstimateCorrelation("test_estimate_correlation_single_column"))
+    suite.addTest(TestEstimateCorrelation("test_estimate_correlation_empty"))
 
     suite.addTest(TestComputeRobustDistance("test_call"))
 
@@ -304,7 +346,8 @@ def build_suite():
     for t in tests:
         suite.addTest(TestBootstrapMetric(f"test_compute_{t}"))
 
-    TestBootstrapMetric("test_callable")
+    suite.addTest(TestBootstrapMetric("test_callable"))
+    suite.addTest(TestBootstrapMetric("test_corner_cases"))
 
     suite.addTest(TestGetScorecard("test_call"))
 
