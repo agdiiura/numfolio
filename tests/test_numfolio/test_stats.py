@@ -101,6 +101,10 @@ class TestComputeStats(unittest.TestCase):
         """Test the compute_max_drawdown function"""
         self._common_test("max_drawdown")
 
+    def test_compute_average_drawdown(self):
+        """Test the compute_average_drawdown function"""
+        self._common_test("average_drawdown")
+
     def test_compute_var(self):
         """Test the compute_var function"""
         self._common_test("var")
@@ -124,6 +128,10 @@ class TestComputeStats(unittest.TestCase):
     def test_compute_calmar_ratio(self):
         """Test the compute_calmar_ratio function"""
         self._common_test("calmar_ratio")
+
+    def test_compute_sterling_ratio(self):
+        """Test the compute_sterling_ratio function"""
+        self._common_test("sterling_ratio")
 
     def test_compute_final_pnl(self):
         """Test the compute_final_pnl function"""
@@ -154,12 +162,14 @@ def build_suite():
         "sortino_ratio",
         "downside_risk",
         "max_drawdown",
+        "average_drawdown",
         "var",
         "cvar",
         "evar",
         "tail_ratio",
         "omega_ratio",
         "calmar_ratio",
+        "sterling_ratio",
         "final_pnl",
         "final_pnl_percentage",
         "stability_of_timeseries",
