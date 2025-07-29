@@ -1,10 +1,11 @@
--"""
+"""
 -----------------------
 risk_adjusted_reward.py
 -----------------------
 
 A module for statistical functions.
 """
+
 import numba
 import numpy as np
 
