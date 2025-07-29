@@ -20,7 +20,8 @@ from .reward import (compute_final_pnl, compute_final_pnl_percentage,
 from .risk_adjusted_reward import (compute_raroc, compute_tail_ratio,
                                    compute_omega_ratio, compute_sharpe_ratio,
                                    compute_sortino_ratio,
-                                   compute_sterling_ratio)
+                                   compute_sterling_ratio,
+                                   compute_calmar_ratio)
 
 __all__ = [
     "compute_cvar",

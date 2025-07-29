@@ -117,7 +117,7 @@ def compute_average_drawdown(returns: np.ndarray) -> float:
 
     """
     pnl = _compute_pnl(returns)
-    return np.nanmean(np.maximum.accumulate(pnl) - pnl)
+    return np.nanmean(_numba_max.accumulate(pnl) - pnl)
 
 
 @numba.njit
