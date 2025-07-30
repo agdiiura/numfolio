@@ -1,0 +1,28 @@
+version: 1
+disable_existing_loggers: False
+formatters:
+  simple:
+    '()': 'coloredlogs.ColoredFormatter'
+    format: "%(levelname)s: %(asctime)s - <PID %(process)d:%(processName)s>: [%(name)s.%(funcName)s] %(message)s"
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    maxBytes: 5242880 # 5MB
+    backupCount: 20
+    encoding: utf8
+    level: INFO
+    filename: logs/info.log
+loggers:
+  simpleExample:
+    level: DEBUG
+    handlers: [console]
+    propagate: no
+root:
+  level: DEBUG
+  handlers: [console,file]
