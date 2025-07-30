@@ -10,7 +10,6 @@ import sys
 import inspect
 
 import numpy as np
-import statsmodels.api as sm
 
 from .risk import (compute_var, compute_cvar, compute_evar,
                    compute_max_drawdown, compute_downside_risk,
@@ -18,10 +17,9 @@ from .risk import (compute_var, compute_cvar, compute_evar,
 from .reward import (compute_final_pnl, compute_final_pnl_percentage,
                      compute_stability_of_timeseries)
 from .risk_adjusted_reward import (compute_raroc, compute_tail_ratio,
-                                   compute_omega_ratio, compute_sharpe_ratio,
-                                   compute_sortino_ratio,
-                                   compute_sterling_ratio,
-                                   compute_calmar_ratio)
+                                   compute_omega_ratio, compute_calmar_ratio,
+                                   compute_sharpe_ratio, compute_sortino_ratio,
+                                   compute_sterling_ratio)
 
 __all__ = [
     "compute_cvar",

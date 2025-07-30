@@ -139,7 +139,10 @@ def compute_sterling_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     Examples:
 
         >>> compute_sterling_ratio(np.array([0.01, 0.02, -0.03]))
-        ###
+        0.0
+
+        >>> compute_sterling_ratio(np.array([0.01, 0.02, -0.03]))
+        nan
 
     References:
 
