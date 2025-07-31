@@ -238,9 +238,9 @@ def compute_cvar_sharpe_ratio(
         "A value risk approach to risk-return analysis."
         Journal of Portfolio Management 25.4 (1999): 60.
 
-        Esfahanipour, Akbar, and Somayeh Mousavi. 
-        "A genetic programming model to generate risk-adjusted technical 
-        trading rules in stock markets." 
+        Esfahanipour, Akbar, and Somayeh Mousavi.
+        "A genetic programming model to generate risk-adjusted technical
+        trading rules in stock markets."
         Expert Systems with Applications 38.7 (2011): 8438-8445.
 
     """
