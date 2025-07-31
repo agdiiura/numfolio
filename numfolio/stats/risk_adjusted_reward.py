@@ -9,7 +9,8 @@ A module for statistical functions.
 import numba
 import numpy as np
 
-from .risk import compute_var, compute_max_drawdown, compute_average_drawdown
+from .risk import (compute_var, compute_cvar, compute_max_drawdown,
+                   compute_average_drawdown)
 from ._stats import annualized_factor
 from .reward import compute_average_returns
 
@@ -165,12 +166,12 @@ def compute_sterling_ratio(returns: np.ndarray, r: float = 0.0) -> float:
 
 
 @numba.njit
-def compute_raroc(
+def compute_var_sharpe_ratio(
     returns: np.ndarray, r: float = 0.0, alpha: float | np.ndarray = 0.05
 ) -> float:
     """
     Compute Risk-Adjusted Return on Capital (RAROC), defined as the ratio of the expected return
-    over the VaR
+    over the CVaR
 
     Args:
         returns: a vector-like object of returns
@@ -178,14 +179,14 @@ def compute_raroc(
         alpha: quantile level
 
     Returns:
-        the RAROC value
+        the VaR Sharpe Ratio value
 
     Examples:
 
-        >>> compute_raroc(np.array([0.01, 0.02, -0.01]), alpha=0.05)
+        >>> compute_var_sharpe_ratio(np.array([0.01, 0.02, -0.01]), alpha=0.05)
         0.668
 
-        >>> compute_raroc(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        >>> compute_var_sharpe_ratio(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
         0.0
 
     References:
@@ -203,6 +204,53 @@ def compute_raroc(
     var = compute_var(returns, alpha=alpha)
     if var != 0:
         return annualized_factor * compute_average_returns(returns=returns, r=r) / var
+
+    return np.nan
+
+
+@numba.njit
+def compute_cvar_sharpe_ratio(
+    returns: np.ndarray, r: float = 0.0, alpha: float | np.ndarray = 0.05
+) -> float:
+    """
+    Compute Risk-Adjusted Return on Capital (RAROC), defined as the ratio of the expected return
+    over the CVaR
+
+    Args:
+        returns: a vector-like object of returns
+        r:  risk-free level
+        alpha: quantile level
+
+    Returns:
+        the CVaR Sharpe Ratio value
+
+    Examples:
+
+        >>> compute_cvar_sharpe_ratio(np.array([0.01, 0.02, -0.01]), alpha=0.05)
+        0.668
+
+        >>> compute_cvar_sharpe_ratio(np.array([-0.1, -0.05, 0.0]), alpha=0.1)
+        0.0
+
+    References:
+
+        Dowd, Kevin.
+        "A value risk approach to risk-return analysis."
+        Journal of Portfolio Management 25.4 (1999): 60.
+
+        Stoughton, Neal M., and Josef Zechner.
+        "Optimal capital allocation using RAROC and EVA."
+        Journal of Financial Intermediation 16.3 (2007): 312-342.
+
+        Prokopczuk, Marcel, et al.
+        "Quantifying risk in the electricity business: A RAROC-based approach."
+        Energy Economics 29.5 (2007): 1033-1049.
+
+    """
+
+    cvar = compute_cvar(returns, alpha=alpha)
+    if cvar != 0:
+        return annualized_factor * compute_average_returns(returns=returns, r=r) / cvar
 
     return np.nan
 

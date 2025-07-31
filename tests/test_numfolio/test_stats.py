@@ -56,7 +56,7 @@ class TestComputeStats(unittest.TestCase):
         cls.kwargs_list = list()
         for r in range(cls.repeat):
             values = rng.standard_t(df=6, size=cls.size)
-            for n in range(cls.n_nans):
+            for _ in range(cls.n_nans):
                 idx = rng.integers(0, cls.size)
                 values[idx] = np.nan
 
@@ -141,9 +141,13 @@ class TestComputeStats(unittest.TestCase):
         """Test the compute_final_pnl_percentage function"""
         self._common_test("final_pnl_percentage")
 
-    def test_compute_raroc(self):
-        """Test the compute_raroc function"""
-        self._common_test("raroc")
+    def test_compute_var_sharpe_ratio(self):
+        """Test the compute_var_sharpe_ratio function"""
+        self._common_test("var_sharpe_ratio")
+
+    def test_compute_cvar_sharpe_ratio(self):
+        """Test the compute_cvar_sharpe_ratio function"""
+        self._common_test("cvar_sharpe_ratio")
 
     def test_compute_stability_of_timeseries(self):
         """Test the compute_stability_of_timeseries function"""
@@ -173,7 +177,8 @@ def build_suite():
         "final_pnl",
         "final_pnl_percentage",
         "stability_of_timeseries",
-        "raroc",
+        "var_sharpe_ratio",
+        "cvar_sharpe_ratio",
     )
 
     for t in tests:
