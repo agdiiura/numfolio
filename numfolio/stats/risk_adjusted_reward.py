@@ -238,13 +238,10 @@ def compute_cvar_sharpe_ratio(
         "A value risk approach to risk-return analysis."
         Journal of Portfolio Management 25.4 (1999): 60.
 
-        Stoughton, Neal M., and Josef Zechner.
-        "Optimal capital allocation using RAROC and EVA."
-        Journal of Financial Intermediation 16.3 (2007): 312-342.
-
-        Prokopczuk, Marcel, et al.
-        "Quantifying risk in the electricity business: A RAROC-based approach."
-        Energy Economics 29.5 (2007): 1033-1049.
+        Esfahanipour, Akbar, and Somayeh Mousavi. 
+        "A genetic programming model to generate risk-adjusted technical 
+        trading rules in stock markets." 
+        Expert Systems with Applications 38.7 (2011): 8438-8445.
 
     """
 
