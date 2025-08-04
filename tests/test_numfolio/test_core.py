@@ -139,6 +139,7 @@ class TestComputeRobustDistance(unittest.TestCase):
         d = compute_robust_distance(self.corr)
 
         self.assertTrue((d >= 0).all().all())
+        self.assertTrue((d.values.diagonal() == 0.0).all())
 
 
 class TestBootstrapMetric(unittest.TestCase):
