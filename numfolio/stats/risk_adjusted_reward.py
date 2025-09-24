@@ -50,7 +50,6 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
     return np.nan
 
 
-@numba.njit
 def compute_probabilistic_sharpe_ratio(
     returns: np.ndarray, r: float = 0.0, sr: float = 0.0
 ) -> float:
@@ -82,8 +81,8 @@ def compute_probabilistic_sharpe_ratio(
     """
     sharpe_ratio = compute_sharpe_ratio(returns=returns, r=r)
 
-    skewness = skew(returns)
-    kurt = kurtosis(returns)
+    skewness = skew(returns, nan_policy="omit")
+    kurt = kurtosis(returns, nan_policy="omit")
     n = returns.size
 
     sr_std = np.sqrt(

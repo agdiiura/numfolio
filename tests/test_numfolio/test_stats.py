@@ -81,7 +81,9 @@ class TestComputeStats(unittest.TestCase):
             r = f(**kw)
             msg = (
                 f"Error with run `{k}`; result = {r}\nreturns: {kw['returns'][:10]}..."
-                f"\nalpha: {kw.get('alpha', None)}\nr: {kw.get('r', None)}"
+                f"\nalpha: {kw.get('alpha', None)}"
+                f"\nr: {kw.get('r', None)}"
+                f"\nsr: {kw.get('sr', None)}"
             )
             self.assertIsInstance(r, float, msg=msg)
             self.assertTrue(pd.notnull(r), msg=msg)
@@ -162,7 +164,7 @@ class TestComputeStats(unittest.TestCase):
         """Test the compute_win_rate function"""
         self._common_test("win_rate")
 
-    def test_risk_of_ruin_ratio(self):
+    def test_compute_risk_of_ruin_ratio(self):
         """Test the risk_of_ruin_ratio function"""
         self._common_test("risk_of_ruin_ratio")
 

@@ -334,8 +334,10 @@ def build_suite():
     tests = (
         "sharpe_ratio",
         "sortino_ratio",
+        "probabilistic_sharpe_ratio",
         "downside_risk",
         "max_drawdown",
+        "average_drawdown",
         "var",
         "cvar",
         "evar",
@@ -347,6 +349,8 @@ def build_suite():
         "stability_of_timeseries",
         "var_sharpe_ratio",
         "cvar_sharpe_ratio",
+        "win_rate",
+        "risk_of_ruin_ratio",
     )
 
     for t in tests:
