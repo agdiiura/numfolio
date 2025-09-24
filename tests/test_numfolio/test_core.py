@@ -169,6 +169,10 @@ class TestBootstrapMetric(unittest.TestCase):
         """Test the compute_sharpe_ratio function"""
         self._common_test("sharpe_ratio")
 
+    def test_compute_probabilistic_sharpe_ratio(self):
+        """Test the compute_probabilistic_sharpe_ratio function"""
+        self._common_test("probabilistic_sharpe_ratio")
+
     def test_compute_sortino_ratio(self):
         """Test the compute_sortino_ratio function"""
         self._common_test("sortino_ratio")
@@ -180,6 +184,10 @@ class TestBootstrapMetric(unittest.TestCase):
     def test_compute_max_drawdown(self):
         """Test the compute_max_drawdown function"""
         self._common_test("max_drawdown")
+
+    def test_compute_average_drawdown(self):
+        """Test the compute_average_drawdown function"""
+        self._common_test("average_drawdown")
 
     def test_compute_var(self):
         """Test the compute_var function"""
@@ -224,6 +232,14 @@ class TestBootstrapMetric(unittest.TestCase):
     def test_compute_stability_of_timeseries(self):
         """Test the compute_stability_of_timeseries function"""
         self._common_test("stability_of_timeseries")
+
+    def test_compute_win_rate(self):
+        """Test the compute_win_rate function"""
+        self._common_test("win_rate")
+
+    def test_compute_risk_of_ruin_ratio(self):
+        """Test the compute_risk_of_ruin_ratio function"""
+        self._common_test("risk_of_ruin_ratio") 
 
     def test_callable(self):
         """Test the execution using a callable object"""
