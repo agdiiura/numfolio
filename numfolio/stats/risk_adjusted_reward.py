@@ -9,6 +9,8 @@ A module for statistical functions.
 import numba
 import numpy as np
 
+from scipy.stats import norm, skew, kurtosis
+
 from .risk import (compute_var, compute_cvar, compute_max_drawdown,
                    compute_average_drawdown)
 from ._stats import annualized_factor
@@ -46,6 +48,50 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         return annualized_factor * compute_average_returns(returns=returns, r=r) / std
 
     return np.nan
+
+
+@numba.njit
+def compute_probabilistic_sharpe_ratio(
+    returns: np.ndarray, r: float = 0.0, sr: float = 0.0
+) -> float:
+    """
+    Compute the Probabilistic Sharpe Ratio (PSR), which is the probability that
+    the Sharpe ratio of a given set of returns is greater than a benchmark Sharpe ratio (sr).
+
+    Args:
+        returns: a vector-like object of returns
+        r: risk-free level
+        sr: benchmark Sharpe ratio
+
+    Returns:
+        the Probabilistic Sharpe Ratio value
+
+    Examples:
+        >>> compute_probabilistic_sharpe_ratio(np.array([0.01, 0.02, 0.03]), r=0.0, sr=1.0)
+        0.9986501019683699
+
+        >>> compute_probabilistic_sharpe_ratio(np.array([-0.01, -0.02, -0.03]), r=0.0, sr=1.0)
+        0.0013498980316301035
+
+    References:
+
+        Bailey, David H., and Marcos López de Prado.
+        "The probabilistic Sharpe ratio."
+        Journal of Portfolio Management 40.5 (2014): 39-49.
+
+    """
+    sharpe_ratio = compute_sharpe_ratio(returns=returns, r=r)
+
+    skewness = skew(returns)
+    kurt = kurtosis(returns)
+    n = returns.size
+
+    sr_std = np.sqrt(
+        (1.0 + (0.5 * sr**2) - (skewness * sr) + (((kurt - 3.0) / 4.0) * sr**2))
+        / (n - 1.0)
+    )
+
+    return norm.cdf((sharpe_ratio - sr) / sr_std)
 
 
 @numba.njit

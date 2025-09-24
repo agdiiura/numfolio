@@ -185,6 +185,7 @@ def build_suite(which: str = "all") -> unittest.TestSuite:
     ]
     tests_risk_adjusted_reward = [
         "sharpe_ratio",
+        "probabilistic_sharpe_ratio",
         "sortino_ratio",
         "tail_ratio",
         "omega_ratio",

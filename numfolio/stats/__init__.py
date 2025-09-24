@@ -21,7 +21,8 @@ from .risk_adjusted_reward import (compute_tail_ratio, compute_omega_ratio,
                                    compute_sortino_ratio,
                                    compute_sterling_ratio,
                                    compute_var_sharpe_ratio,
-                                   compute_cvar_sharpe_ratio)
+                                   compute_cvar_sharpe_ratio,
+                                   compute_probabilistic_sharpe_ratio)
 
 __all__ = [
     "compute_cvar",
@@ -31,6 +32,7 @@ __all__ = [
     "compute_cvar_sharpe_ratio",
     "compute_final_pnl",
     "compute_sharpe_ratio",
+    "compute_probabilistic_sharpe_ratio",
     "compute_sortino_ratio",
     "compute_max_drawdown",
     "compute_average_drawdown",
