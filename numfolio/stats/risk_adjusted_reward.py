@@ -12,7 +12,7 @@ import numpy as np
 from .risk import (compute_var, compute_cvar, compute_max_drawdown,
                    compute_average_drawdown)
 from ._stats import annualized_factor
-from .reward import compute_average_returns
+from .reward import compute_win_rate, compute_average_returns
 
 
 @numba.njit
@@ -327,6 +327,41 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         return annualized_factor * num / den
     else:
         return np.nan
+
+
+@numba.njit
+def compute_risk_of_ruin_ratio(returns: np.ndarray, r: float = 0.0) -> float:
+    """
+    Compute the Risk of Ruin ratio, which is the probability of losing all capital.
+
+    Args:
+        returns: a vector-like object of returns
+        r: risk-free level
+
+    Returns:
+        the Risk of Ruin ratio value
+
+    Examples:
+
+        >>> compute_risk_of_ruin_ratio(np.array([0.01, -0.02, 0.03]), r=0.0)
+        0.3333333333333333
+
+        >>> compute_risk_of_ruin_ratio(np.array([-0.1, -0.05, 0.05]), r=0.0)
+        1.0
+
+    References:
+        Taranto, Aldo, and Shahjahan Khan.
+        "Gambler’s ruin problem and bi-directional grid constrained trading
+        and investment strategies."
+        Investment Management and Financial Innovations 17.3 (2020): 54-66.
+
+    """
+
+    win_rate = compute_win_rate(returns, r=r)
+
+    s = returns.size
+
+    return ((1.0 - win_rate) / (1 + win_rate)) ** s
 
 
 if __name__ == "__main__":
