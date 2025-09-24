@@ -62,7 +62,8 @@ class TestComputeStats(unittest.TestCase):
 
             alpha = rng.uniform(0.01, 0.1)
             r = rng.uniform(0.01, 0.1)
-            cls.kwargs_list.append({"returns": values, "alpha": alpha, "r": r})
+            sr = rng.uniform(0.001, 0.01)
+            cls.kwargs_list.append({"returns": values, "alpha": alpha, "r": r, "sr": sr})
 
     def _common_test(self, function):
         """Test common functionality"""
@@ -88,6 +89,10 @@ class TestComputeStats(unittest.TestCase):
     def test_compute_sharpe_ratio(self):
         """Test the compute_sharpe_ratio function"""
         self._common_test("sharpe_ratio")
+
+    def test_compute_probabilistic_sharpe_ratio(self):
+        """Test the compute_probabilistic_sharpe_ratio function"""
+        self._common_test("probabilistic_sharpe_ratio")
 
     def test_compute_sortino_ratio(self):
         """Test the compute_sortino_ratio function"""
