@@ -9,10 +9,12 @@ A module for statistical functions.
 import numba
 import numpy as np
 
+from scipy.stats import norm, skew, kurtosis
+
 from .risk import (compute_var, compute_cvar, compute_max_drawdown,
                    compute_average_drawdown)
 from ._stats import annualized_factor
-from .reward import compute_average_returns
+from .reward import compute_win_rate, compute_average_returns
 
 
 @numba.njit
@@ -46,6 +48,49 @@ def compute_sharpe_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         return annualized_factor * compute_average_returns(returns=returns, r=r) / std
 
     return np.nan
+
+
+def compute_probabilistic_sharpe_ratio(
+    returns: np.ndarray, r: float = 0.0, sr: float = 0.0
+) -> float:
+    """
+    Compute the Probabilistic Sharpe Ratio (PSR), which is the probability that
+    the Sharpe ratio of a given set of returns is greater than a benchmark Sharpe ratio (sr).
+
+    Args:
+        returns: a vector-like object of returns
+        r: risk-free level
+        sr: benchmark Sharpe ratio
+
+    Returns:
+        the Probabilistic Sharpe Ratio value
+
+    Examples:
+        >>> compute_probabilistic_sharpe_ratio(np.array([0.01, 0.02, 0.03]), r=0.0, sr=1.0)
+        0.9986501019683699
+
+        >>> compute_probabilistic_sharpe_ratio(np.array([-0.01, -0.02, -0.03]), r=0.0, sr=1.0)
+        0.0013498980316301035
+
+    References:
+
+        Bailey, David H., and Marcos López de Prado.
+        "The probabilistic Sharpe ratio."
+        Journal of Portfolio Management 40.5 (2014): 39-49.
+
+    """
+    sharpe_ratio = compute_sharpe_ratio(returns=returns, r=r)
+
+    skewness = skew(returns, nan_policy="omit")
+    kurt = kurtosis(returns, nan_policy="omit")
+    n = returns.size
+
+    sr_std = np.sqrt(
+        (1.0 + (0.5 * sr**2) - (skewness * sr) + (((kurt - 3.0) / 4.0) * sr**2))
+        / (n - 1.0)
+    )
+
+    return norm.cdf((sharpe_ratio - sr) / sr_std)
 
 
 @numba.njit
@@ -327,6 +372,41 @@ def compute_omega_ratio(returns: np.ndarray, r: float = 0.0) -> float:
         return annualized_factor * num / den
     else:
         return np.nan
+
+
+@numba.njit
+def compute_risk_of_ruin_ratio(returns: np.ndarray, r: float = 0.0) -> float:
+    """
+    Compute the Risk of Ruin ratio, which is the probability of losing all capital.
+
+    Args:
+        returns: a vector-like object of returns
+        r: risk-free level
+
+    Returns:
+        the Risk of Ruin ratio value
+
+    Examples:
+
+        >>> compute_risk_of_ruin_ratio(np.array([0.01, -0.02, 0.03]), r=0.0)
+        0.3333333333333333
+
+        >>> compute_risk_of_ruin_ratio(np.array([-0.1, -0.05, 0.05]), r=0.0)
+        1.0
+
+    References:
+        Taranto, Aldo, and Shahjahan Khan.
+        "Gambler’s ruin problem and bi-directional grid constrained trading
+        and investment strategies."
+        Investment Management and Financial Innovations 17.3 (2020): 54-66.
+
+    """
+
+    win_rate = compute_win_rate(returns, r=r)
+
+    s = returns.size
+
+    return ((1.0 - win_rate) / (1 + win_rate)) ** s
 
 
 if __name__ == "__main__":

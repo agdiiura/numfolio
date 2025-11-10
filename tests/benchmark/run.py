@@ -26,7 +26,7 @@ rng = np.random.default_rng()
 results_path = Path(__file__).parent.absolute() / "results"
 results_path.mkdir(parents=True, exist_ok=True)
 
-N_TESTS = 100
+N_TESTS = 250
 
 
 def run_benchmarks(n_tests: int = N_TESTS):
@@ -42,16 +42,22 @@ def run_benchmarks(n_tests: int = N_TESTS):
         for f in dir(stats)
         if callable(getattr(stats, f)) and f.startswith("compute_")
     ]
-    n_returns = [10, 100, 1000, 10000]  # Different sizes of returns to test
 
-    for func, n_ret in tqdm(product(functions, n_returns)):
-        out = {"function": func.__name__}
+    # Different sizes of returns to test
+    n_returns = [10, 100, 1000, 10000]
+    numba_flag = [True, False]
+
+    for func, n_ret, use_numba in tqdm(
+        product(functions, n_returns, numba_flag),
+        total=len(functions) * len(n_returns) * len(numba_flag),
+    ):
+        out = {"function": func.__name__, "use_numba": use_numba, "n_returns": n_ret}
 
         times = list()
         for _ in range(n_tests):
             # Generate random returns for testing
             returns = rng.standard_t(4, n_ret)
-            times.append(benchmark_function(func, returns))
+            times.append(benchmark_function(func, returns, use_numba=use_numba))
 
         out["min_time"] = np.min(times)
         out["max_time"] = np.max(times)
@@ -60,7 +66,6 @@ def run_benchmarks(n_tests: int = N_TESTS):
         out["median_time"] = np.median(times)
         out["n_nans"] = np.sum(np.isnan(times))
         out["n_tests"] = n_tests
-        out["n_returns"] = n_ret
         out["datetime"] = pd.Timestamp.now()
 
         statistics.append(out)
@@ -74,17 +79,18 @@ def run_benchmarks(n_tests: int = N_TESTS):
 
     df.to_csv(filename, index=False)
 
-    print(df)
+    logger.info(f"Benchmark results saved to {filename}")
+    logger.info(df)
 
 
-def benchmark_function(func, *args, **kwargs) -> float:
+def benchmark_function(func, returns: np.ndarray, use_numba: bool = True) -> float:
     """
     Benchmark a function by measuring its execution time.
 
     Args:
         func: The function to benchmark.
-        *args: Positional arguments for the function.
-        **kwargs: Keyword arguments for the function.
+        returns: The input data for the function.
+        use_numba: Whether to use the numba-compiled version of the function.
 
     Returns:
         The execution time in seconds.
@@ -92,7 +98,10 @@ def benchmark_function(func, *args, **kwargs) -> float:
     """
     try:
         start_time = timeit.default_timer()
-        func(*args, **kwargs)
+        if use_numba:
+            func(returns)
+        else:
+            func.py_func(returns)
         end_time = timeit.default_timer()
         return end_time - start_time
     except Exception as e:

@@ -62,7 +62,8 @@ class TestComputeStats(unittest.TestCase):
 
             alpha = rng.uniform(0.01, 0.1)
             r = rng.uniform(0.01, 0.1)
-            cls.kwargs_list.append({"returns": values, "alpha": alpha, "r": r})
+            sr = rng.uniform(0.001, 0.01)
+            cls.kwargs_list.append({"returns": values, "alpha": alpha, "r": r, "sr": sr})
 
     def _common_test(self, function):
         """Test common functionality"""
@@ -80,7 +81,9 @@ class TestComputeStats(unittest.TestCase):
             r = f(**kw)
             msg = (
                 f"Error with run `{k}`; result = {r}\nreturns: {kw['returns'][:10]}..."
-                f"\nalpha: {kw.get('alpha', None)}\nr: {kw.get('r', None)}"
+                f"\nalpha: {kw.get('alpha', None)}"
+                f"\nr: {kw.get('r', None)}"
+                f"\nsr: {kw.get('sr', None)}"
             )
             self.assertIsInstance(r, float, msg=msg)
             self.assertTrue(pd.notnull(r), msg=msg)
@@ -88,6 +91,10 @@ class TestComputeStats(unittest.TestCase):
     def test_compute_sharpe_ratio(self):
         """Test the compute_sharpe_ratio function"""
         self._common_test("sharpe_ratio")
+
+    def test_compute_probabilistic_sharpe_ratio(self):
+        """Test the compute_probabilistic_sharpe_ratio function"""
+        self._common_test("probabilistic_sharpe_ratio")
 
     def test_compute_sortino_ratio(self):
         """Test the compute_sortino_ratio function"""
@@ -153,33 +160,57 @@ class TestComputeStats(unittest.TestCase):
         """Test the compute_stability_of_timeseries function"""
         self._common_test("stability_of_timeseries")
 
+    def test_compute_win_rate(self):
+        """Test the compute_win_rate function"""
+        self._common_test("win_rate")
 
-def build_suite():
+    def test_compute_risk_of_ruin_ratio(self):
+        """Test the risk_of_ruin_ratio function"""
+        self._common_test("risk_of_ruin_ratio")
+
+
+def build_suite(which: str = "all") -> unittest.TestSuite:
     """Construct the TestSuite"""
 
     suite = unittest.TestSuite()
 
     suite.addTest(TestCompileNumbaFunctions("test_call"))
 
-    tests = (
-        "sharpe_ratio",
-        "sortino_ratio",
+    tests_risk = [
         "downside_risk",
         "max_drawdown",
         "average_drawdown",
         "var",
         "cvar",
         "evar",
+    ]
+    tests_reward = [
+        "final_pnl",
+        "final_pnl_percentage",
+        "win_rate",
+        "stability_of_timeseries",
+    ]
+    tests_risk_adjusted_reward = [
+        "sharpe_ratio",
+        "probabilistic_sharpe_ratio",
+        "sortino_ratio",
         "tail_ratio",
         "omega_ratio",
         "calmar_ratio",
         "sterling_ratio",
-        "final_pnl",
-        "final_pnl_percentage",
-        "stability_of_timeseries",
         "var_sharpe_ratio",
         "cvar_sharpe_ratio",
-    )
+        "risk_of_ruin_ratio",
+    ]
+
+    if which == "risk":
+        tests = tests_risk
+    elif which == "reward":
+        tests = tests_reward
+    elif which == "risk_adjusted_reward":
+        tests = tests_risk_adjusted_reward
+    else:
+        tests = tests_risk + tests_reward + tests_risk_adjusted_reward
 
     for t in tests:
         suite.addTest(TestComputeStats(f"test_compute_{t}"))

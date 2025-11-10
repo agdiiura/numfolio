@@ -85,6 +85,16 @@ def compute_max_drawdown(returns: np.ndarray) -> float:
         >>> compute_max_drawdown(np.array([0.1, 0.2, 0.3]))
         0.0
 
+    References:
+
+        Chekhlov, Alexei, Stanislav Uryasev, and Michael Zabarankin.
+        "Drawdown measure in portfolio optimization."
+        International Journal of Theoretical and Applied Finance 8.01 (2005): 13-58.
+
+        Geboers, Hans, Benoît Depaire, and Jan Annaert.
+        "A review on drawdown risk measures and their implications for risk management."
+        Journal of Economic Surveys 37.3 (2023): 865-889.
+
     """
     pnl = _compute_pnl(returns)
 
@@ -114,6 +124,16 @@ def compute_average_drawdown(returns: np.ndarray) -> float:
 
         >>> compute_average_drawdown(np.array([0.1, 0.2, 0.3]))
         0.0
+
+    References:
+
+        Chekhlov, Alexei, Stanislav Uryasev, and Michael Zabarankin.
+        "Drawdown measure in portfolio optimization."
+        International Journal of Theoretical and Applied Finance 8.01 (2005): 13-58.
+
+        Geboers, Hans, Benoît Depaire, and Jan Annaert.
+        "A review on drawdown risk measures and their implications for risk management."
+        Journal of Economic Surveys 37.3 (2023): 865-889.
 
     """
     pnl = _compute_pnl(returns)

@@ -115,5 +115,22 @@ def compute_stability_of_timeseries(returns: np.ndarray) -> float:
     return res.rsquared
 
 
+@numba.njit
+def compute_win_rate(returns: np.ndarray, r: float = 0.0) -> float:
+    """
+    Compute the win rate of returns.
+
+    Args:
+        returns: a vector-like object of returns
+        r: risk-free level (default is 0)
+
+    Returns:
+        win rate (percentage of positive returns)
+
+    """
+
+    return (returns[returns > r]).size / returns.size
+
+
 if __name__ == "__main__":
     pass

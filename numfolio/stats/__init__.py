@@ -14,14 +14,17 @@ import numpy as np
 from .risk import (compute_var, compute_cvar, compute_evar,
                    compute_max_drawdown, compute_downside_risk,
                    compute_average_drawdown)
-from .reward import (compute_final_pnl, compute_final_pnl_percentage,
+from .reward import (compute_win_rate, compute_final_pnl,
+                     compute_final_pnl_percentage,
                      compute_stability_of_timeseries)
 from .risk_adjusted_reward import (compute_tail_ratio, compute_omega_ratio,
                                    compute_calmar_ratio, compute_sharpe_ratio,
                                    compute_sortino_ratio,
                                    compute_sterling_ratio,
                                    compute_var_sharpe_ratio,
-                                   compute_cvar_sharpe_ratio)
+                                   compute_cvar_sharpe_ratio,
+                                   compute_risk_of_ruin_ratio,
+                                   compute_probabilistic_sharpe_ratio)
 
 __all__ = [
     "compute_cvar",
@@ -31,6 +34,7 @@ __all__ = [
     "compute_cvar_sharpe_ratio",
     "compute_final_pnl",
     "compute_sharpe_ratio",
+    "compute_probabilistic_sharpe_ratio",
     "compute_sortino_ratio",
     "compute_max_drawdown",
     "compute_average_drawdown",
@@ -41,6 +45,8 @@ __all__ = [
     "compute_downside_risk",
     "compute_stability_of_timeseries",
     "compute_final_pnl_percentage",
+    "compute_risk_of_ruin_ratio",
+    "compute_win_rate",
 ]
 
 
