@@ -239,7 +239,7 @@ class TestBootstrapMetric(unittest.TestCase):
 
     def test_compute_risk_of_ruin_ratio(self):
         """Test the compute_risk_of_ruin_ratio function"""
-        self._common_test("risk_of_ruin_ratio") 
+        self._common_test("risk_of_ruin_ratio")
 
     def test_callable(self):
         """Test the execution using a callable object"""
@@ -305,7 +305,7 @@ class TestGetScorecard(unittest.TestCase):
             {"returns": returns, "ptf": np.arange(returns.size)}, index=index
         )
 
-        for freq in ["Y", "Q", "M"]:
+        for freq in ["YE", "QE", "ME"]:
             n_samples = data.resample(freq).last().shape[0]
 
             obj = get_scorecard(data, freq=freq)

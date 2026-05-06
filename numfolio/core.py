@@ -105,14 +105,14 @@ def bootstrap_metric(
     return np.array(result)
 
 
-def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
+def get_scorecard(portfolio: pd.DataFrame, freq: str = "YE") -> pd.DataFrame:
     """
     Generate a performance scorecard of portfolio metrics aggregated by period.
 
     Args:
         portfolio: DataFrame containing at least 'returns' or 'pnl' columns.
             If one is missing, it will be computed internally
-        freq: Resampling frequency: 'Y' (year), 'Q' (quarter), or 'M' (month)
+        freq: Resampling frequency: 'YE' (year), 'QE' (quarter), or 'ME' (month)
 
     Returns:
         DataFrame with metrics such as Sharpe Ratio, Sortino Ratio, Max Drawdown,
@@ -148,9 +148,9 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
         portfolio["pnl"] = portfolio["returns"].cumsum()
 
     map_freq = [
-        ("Y", {"year": "Y"}),
-        ("Q", {"year": "Y", "quarter": "Q"}),
-        ("M", {"year": "Y", "month": ""}),
+        ("YE", {"year": "Y"}),
+        ("QE", {"year": "Y", "quarter": "Q"}),
+        ("ME", {"year": "Y", "month": ""}),
     ]
 
     idx = [itm[0] for itm in map_freq].index(freq)
@@ -165,18 +165,16 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "Y") -> pd.DataFrame:
         for itm in vals
     ]
 
-    scorecard = portfolio.groupby("freq").agg(
-        sharpe_ratio=("returns", lambda x: stats.compute_sharpe_ratio(x.dropna().values)),
-        sortino_ratio=(
-            "returns",
-            lambda x: stats.compute_sortino_ratio(x.dropna().values),
-        ),
-        max_drawdown=("returns", lambda x: stats.compute_max_drawdown(x.dropna().values)),
-        var=("returns", lambda x: stats.compute_var(x.dropna().values)),
-        cvar=("returns", lambda x: stats.compute_cvar(x.dropna().values)),
-        final_pnl=("returns", lambda x: stats.compute_final_pnl(x.dropna().values)),
-    )
+    keys = ["sharpe_ratio", "sortino_ratio", "max_drawdown", "var", "cvar", "final_pnl"]
 
+    map_metrics = {key: ("returns", getattr(stats, f"compute_{key}")) for key in keys}
+
+    scorecard = portfolio.groupby("freq").agg(
+        **{
+            key: (col, lambda x: func(x.dropna().values))
+            for key, (col, func) in map_metrics.items()
+        }
+    )
     # scorecard.index = [str(pd.Timestamp(itm).date()) for itm in scorecard.index]
 
     scorecard.index.name = "Period"
