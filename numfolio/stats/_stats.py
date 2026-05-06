@@ -4,7 +4,7 @@ import numpy as np
 annualized_factor = np.sqrt(252.0)
 
 
-@numba.njit("float64[:](float64[:])", cache=True)
+@numba.njit
 def _compute_pnl(returns: np.ndarray) -> np.ndarray:
     """
     Compute cumulative PNL from input returns.
@@ -27,7 +27,7 @@ def _compute_pnl(returns: np.ndarray) -> np.ndarray:
     return pnl[np.isfinite(pnl)]
 
 
-@numba.njit("float64[:](float64[:])", cache=True)
+@numba.njit
 def _compute_loss(returns: np.ndarray) -> np.ndarray:
     """
     Compute losses (negatives) from input returns.

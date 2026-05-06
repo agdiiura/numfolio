@@ -165,18 +165,16 @@ def get_scorecard(portfolio: pd.DataFrame, freq: str = "YE") -> pd.DataFrame:
         for itm in vals
     ]
 
-    scorecard = portfolio.groupby("freq").agg(
-        sharpe_ratio=("returns", lambda x: stats.compute_sharpe_ratio(x.dropna().values)),
-        sortino_ratio=(
-            "returns",
-            lambda x: stats.compute_sortino_ratio(x.dropna().values),
-        ),
-        max_drawdown=("returns", lambda x: stats.compute_max_drawdown(x.dropna().values)),
-        var=("returns", lambda x: stats.compute_var(x.dropna().values)),
-        cvar=("returns", lambda x: stats.compute_cvar(x.dropna().values)),
-        final_pnl=("returns", lambda x: stats.compute_final_pnl(x.dropna().values)),
-    )
+    keys = ["sharpe_ratio", "sortino_ratio", "max_drawdown", "var", "cvar", "final_pnl"]
 
+    map_metrics = {key: ("returns", getattr(stats, f"compute_{key}")) for key in keys}
+
+    scorecard = portfolio.groupby("freq").agg(
+        **{
+            key: (col, lambda x: func(x.dropna().values))
+            for key, (col, func) in map_metrics.items()
+        }
+    )
     # scorecard.index = [str(pd.Timestamp(itm).date()) for itm in scorecard.index]
 
     scorecard.index.name = "Period"
